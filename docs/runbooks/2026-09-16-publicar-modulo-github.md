@@ -91,12 +91,14 @@ API faz `go mod download` e precisa da tag pública.
 
 7. **Commit da feature 023 pela esteira normal.**
    ```bash
+   cd ~/workspace/Gitea/financeiro-api-v2
    git add -A
    git commit -m "feat(assistente): integra o harness de IA in-process (spec 023)"
-   git push origin main
+   git push          # a branch main trackeia github/main; use `git push github main` explícito
+   git push origin main   # espelha no Gitea do homelab
    ```
-   O que faz: envia a feature e dispara o pipeline. Como verificar: CircleCI `test` +
-   `build` verdes; `deploy_homolog` só em tag.
+   O que faz: envia a feature e dispara o pipeline (CircleCI está ligado ao GitHub). Como
+   verificar: CircleCI `test` + `build` verdes; `deploy_homolog` só em tag.
 
 ## Rollback
 
@@ -132,4 +134,14 @@ API faz `go mod download` e precisa da tag pública.
 
 ## Resultado
 
-**Pendente — preencher após a execução (operador).**
+**Executado em 2026-09-16 (agente, autorizado pelo operador).**
+
+- Passo 1: `make verify` verde no harness (exit 0, `No vulnerabilities found`).
+- Passo 2: commit `b8e5902` — `refactor(module): migra para github.com/rmarquespaixao-eng/ia-harness (ADR 0022)` (108 arquivos).
+- Passo 3: tag `v0.1.0` recriada no commit do rename (`git tag -n1` → `v0.1.0 release v0.1.0`).
+- Passo 4: repo criado em `https://github.com/rmarquespaixao-eng/ia-harness`; push de `master` e da tag. Refs remotas: `refs/heads/master` e `refs/tags/v0.1.0^{}` = `b8e5902`.
+- Passo 5: `go list -m github.com/rmarquespaixao-eng/ia-harness@v0.1.0` → `v0.1.0` (proxy OK na 1ª tentativa).
+- Passo 6: no `financeiro-api-v2`, `dropreplace` + `require v0.1.0` + `go mod tidy` (baixou o módulo; `go.sum` com `h1:` e `/go.mod`); `make verify` verde e `go generate ./...` sem diff.
+- Passo 7: commits `b595dd0` (chore gitignore) e `5780730` (`feat(assistente)`), publicados em `github/main` e `origin/main` (Gitea).
+
+**Desvios:** (a) o passo 4 usou `gh repo create` + `git push -u origin master` + `git push origin v0.1.0` — sem `--push` no `create`; (b) o passo 7 tinha `git push origin main`, mas a `main` do financeiro trackeia `github/main`; corrigido acima e publicado nos dois remotes. **Pendente:** conferir o pipeline do CircleCI e o smoke real do assistente.
