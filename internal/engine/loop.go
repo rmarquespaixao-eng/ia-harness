@@ -252,7 +252,11 @@ func (h *Harness) runTurn(ctx context.Context, session *Session, req RunRequest,
 			CreatedAt: h.cfg.Clock.Now(),
 		})
 	}
-	messages := append(h.memoryMessages(ctx, session, req.Input), h.buildMessages(ctx, session, nil)...)
+	// O contexto de trabalho é memória + histórico; a janela é aplicada por
+	// chamada de modelo dentro do loop (feature 018), pois o histórico cresce
+	// com os resultados de tool ao longo do turno.
+	messages := append(h.memoryMessages(ctx, session, req.Input), session.Messages...)
+	summarizeAllowed := h.cfg.Context.Strategy == StrategySummarize && h.cfg.Context.Summarizer != nil
 
 	result := TurnResult{SessionID: session.ID, Model: session.Model}
 	var executions []ToolExecution
@@ -342,11 +346,25 @@ func (h *Harness) runTurn(ctx context.Context, session *Session, req RunRequest,
 		}
 
 		messageID := newID()
+		system := h.effectiveSystemPrompt(session.AgentID)
+		requestMessages := messages
+		if budget, fromModel := h.contextBudget(profile); budget > 0 {
+			extra := h.estimateTextTokens(system) + h.estimateToolsTokens(toolDefs)
+			windowed, compaction := h.applyWindow(ctx, session, messages, extra, budget, h.compactionRatio(fromModel), summarizeAllowed, session.Model)
+			requestMessages = windowed
+			if compaction != nil {
+				if compaction.Summarized {
+					summarizeAllowed = false
+				}
+				result.Compaction = compaction
+				h.emitCompaction(ctx, handler, session.ID, compaction)
+			}
+		}
 		chatReq := ChatRequest{
 			Model:           profile.Model,
 			SessionID:       session.ID,
-			System:          h.effectiveSystemPrompt(session.AgentID),
-			Messages:        messages,
+			System:          system,
+			Messages:        requestMessages,
 			Tools:           toolDefs,
 			Params:          profile.Params,
 			MaxOutputTokens: profile.Capabilities.MaxOutputTokens,

@@ -130,6 +130,22 @@ const (
 	ErrorMCP   ErrorScope = "mcp"
 )
 
+// CompactionEvent reporta ao host que o contexto foi compactado (feature 018).
+// É opcional: o motor só o emite quando o Handler implementa CompactionHandler.
+type CompactionEvent struct {
+	SessionID       string `json:"session_id"`
+	TokensBefore    int    `json:"tokens_before"`
+	TokensAfter     int    `json:"tokens_after"`
+	MessagesRemoved int    `json:"messages_removed"`
+	Summarized      bool   `json:"summarized"`
+}
+
+// CompactionHandler é a extensão opcional de Handler para observar a
+// compactação de contexto; quem não a implementa simplesmente não a recebe.
+type CompactionHandler interface {
+	Compaction(ctx context.Context, ev CompactionEvent)
+}
+
 // Status dos resultados de tool (ToolResultEvent.Status e ToolExecution.Status).
 const (
 	StatusOK     = "ok"

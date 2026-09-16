@@ -236,3 +236,125 @@ func TestWindow_EstimativaContaTextoArgsEJSON(t *testing.T) {
 	// Act + Assert
 	assert.Equal(t, 20, h.estimateWindowTokens([]Message{message}))
 }
+
+func TestContextBudget_DerivaDaCapacidadeDoModelo(t *testing.T) {
+	// Arrange — política global de 500 e margem de 100.
+	h := windowTestHarness(t, ContextPolicy{MaxTokens: 500, SafetyMargin: 100}, 4)
+
+	// Act + Assert — a capacidade do modelo vence e reserva saída + margem.
+	budget, fromModel := h.contextBudget(ModelProfile{Capabilities: Capabilities{MaxContextTokens: 1000, MaxOutputTokens: 200}})
+	assert.True(t, fromModel, "orçamento veio do modelo")
+	assert.Equal(t, 700, budget)
+
+	// Sem capacidade, cai para a política global (legado).
+	fallback, fromModel := h.contextBudget(ModelProfile{})
+	assert.False(t, fromModel)
+	assert.Equal(t, 500, fallback)
+
+	// Sem capacidade e sem política global, a janela fica desligada.
+	off := windowTestHarness(t, ContextPolicy{}, 4)
+	zero, _ := off.contextBudget(ModelProfile{})
+	assert.Zero(t, zero)
+}
+
+func TestWindow_PorModeloCompactaNoGatilhoDe80(t *testing.T) {
+	// Arrange — orçamento 100; gatilho 0,8 dispara com ~201 tokens.
+	h := windowTestHarness(t, ContextPolicy{}, 4)
+	messages := []Message{
+		windowMessage("a", RoleUser, strings.Repeat("a", 400)),
+		windowMessage("b", RoleAssistant, strings.Repeat("b", 400)),
+		windowMessage("now", RoleUser, "oi"),
+	}
+
+	// Act
+	kept, info := h.applyWindow(context.Background(), &Session{}, messages, 0, 100, 0.8, false, "")
+
+	// Assert — compactou até caber, preservando o mais recente.
+	require.NotNil(t, info)
+	assert.Equal(t, []string{"now"}, windowIDs(kept))
+	assert.False(t, info.Summarized)
+	assert.Greater(t, info.TokensBefore, info.TokensAfter)
+	assert.LessOrEqual(t, info.TokensAfter, 100)
+}
+
+func TestWindow_RemoveBlocoDeToolInteiroSemOrfao(t *testing.T) {
+	// Arrange — bloco assistant(tool_call) + tool_result grande entre antigas.
+	h := windowTestHarness(t, ContextPolicy{}, 4)
+	call := Message{ID: "call", Role: RoleAssistant, Parts: []Part{
+		{Kind: PartToolCall, Call: &ToolCall{ID: "c1", Name: "t", Args: []byte("{}")}},
+	}}
+	result := Message{ID: "res", Role: RoleTool, Parts: []Part{
+		{Kind: PartToolResult, Result: &ToolResult{CallID: "c1", Content: []ResultContent{
+			{Kind: ResultText, Text: strings.Repeat("z", 400)},
+		}}},
+	}}
+	messages := []Message{
+		windowMessage("old", RoleUser, strings.Repeat("a", 400)),
+		call, result,
+		windowMessage("now", RoleUser, "oi"),
+	}
+
+	// Act — orçamento apertado força remover o bloco inteiro.
+	kept, info := h.applyWindow(context.Background(), &Session{}, messages, 0, 30, 1, false, "")
+
+	// Assert — chamada e resultado saíram juntos; nenhum resultado órfão.
+	require.NotNil(t, info)
+	assert.Equal(t, []string{"now"}, windowIDs(kept))
+	assert.Equal(t, 3, info.MessagesRemoved)
+	for i, message := range kept {
+		if messageHasToolResult(message) {
+			require.Greater(t, i, 0, "resultado de tool não pode liderar o contexto")
+			assert.True(t, messageHasToolCall(kept[i-1]), "resultado precisa da chamada anterior")
+		}
+	}
+}
+
+func TestWindow_EstimativasContamSystemETools(t *testing.T) {
+	// Arrange
+	h := windowTestHarness(t, ContextPolicy{}, 4)
+
+	// Act + Assert — vazio é zero; conteúdo vira estimativa positiva.
+	assert.Zero(t, h.estimateTextTokens(""))
+	assert.Zero(t, h.estimateToolsTokens(nil))
+	assert.Positive(t, h.estimateTextTokens(strings.Repeat("y", 40)))
+	assert.Positive(t, h.estimateToolsTokens([]Tool{
+		{Name: "t", Description: "d", InputSchema: []byte(strings.Repeat("x", 40)), Namespace: "n"},
+	}))
+}
+
+// modelAwareSummarizer implementa Summarizer e ModelSummarizer; registra o modelo recebido.
+type modelAwareSummarizer struct {
+	model   string
+	summary string
+}
+
+func (m *modelAwareSummarizer) Summarize(context.Context, []Message, int) (string, error) {
+	return "fallback", nil
+}
+
+func (m *modelAwareSummarizer) SummarizeForModel(_ context.Context, model string, _ []Message, _ int) (string, error) {
+	m.model = model
+	return m.summary, nil
+}
+
+func TestWindow_ModelSummarizerRecebeOAlisDoTurno(t *testing.T) {
+	// Arrange
+	summarizer := &modelAwareSummarizer{summary: "resumo"}
+	h := windowTestHarness(t, ContextPolicy{Strategy: StrategySummarize, Summarizer: summarizer}, 4)
+	messages := []Message{
+		windowMessage("a", RoleUser, strings.Repeat("a", 400)),
+		windowMessage("b", RoleAssistant, strings.Repeat("b", 400)),
+		windowMessage("now", RoleUser, "oi"),
+	}
+
+	// Act
+	kept, info := h.applyWindow(context.Background(), &Session{}, messages, 0, 100, 0.8, true, "go-luna")
+
+	// Assert — o resumo usa o alias do modelo do perfil.
+	require.NotNil(t, info)
+	assert.True(t, info.Summarized)
+	assert.Equal(t, "go-luna", summarizer.model)
+	require.Len(t, kept, 2)
+	assert.Equal(t, RoleSystem, kept[0].Role, "resumo injetado como sistema")
+	assert.Equal(t, "now", kept[1].ID, "mensagem recente preservada")
+}

@@ -124,11 +124,18 @@ const (
 	StrategySummarize      ContextStrategy = "summarize"
 )
 
-// ContextPolicy limita e ajusta o contexto montado por turno.
+// ContextPolicy limita e ajusta o contexto montado por chamada de modelo.
 type ContextPolicy struct {
 	MaxTokens  int             `json:"max_tokens,omitempty"`
 	Strategy   ContextStrategy `json:"strategy,omitempty"`
 	Summarizer Summarizer      `json:"-"`
+	// CompactAtRatio é o gatilho de compactação (fração do orçamento) quando o
+	// orçamento vem da capacidade do modelo (feature 018); ≤0 usa 0,8. Ignorado
+	// no fallback legado por Context.MaxTokens (aí o gatilho é 1,0).
+	CompactAtRatio float64 `json:"compact_at_ratio,omitempty"`
+	// SafetyMargin são tokens reservados além de MaxOutputTokens ao derivar o
+	// orçamento de Capabilities.MaxContextTokens (feature 018).
+	SafetyMargin int `json:"safety_margin,omitempty"`
 }
 
 // RedactionConfig controla a redação/truncamento dos campos auditados.
@@ -186,6 +193,16 @@ type TurnResult struct {
 	ToolCalls  []ToolExecution
 	StopReason StopReason
 	Model      string
+	// Compaction registra a última compactação de contexto do turno (feature 018).
+	Compaction *CompactionInfo
+}
+
+// CompactionInfo resume o efeito de uma compactação de contexto no turno.
+type CompactionInfo struct {
+	TokensBefore    int  `json:"tokens_before"`
+	TokensAfter     int  `json:"tokens_after"`
+	MessagesRemoved int  `json:"messages_removed"`
+	Summarized      bool `json:"summarized"`
 }
 
 // Decision é a resposta do host a um ConfirmationEvent.

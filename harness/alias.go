@@ -23,6 +23,9 @@ type (
 	StopReason           = core.StopReason
 	ToolExecution        = core.ToolExecution
 	TurnResult           = core.TurnResult
+	CompactionInfo       = core.CompactionInfo
+	CompactionEvent      = core.CompactionEvent
+	CompactionHandler    = core.CompactionHandler
 	Decision             = core.Decision
 	Provider             = core.Provider
 	ToolSource           = core.ToolSource
@@ -33,6 +36,7 @@ type (
 	Embedder             = core.Embedder
 	CredentialProvider   = core.CredentialProvider
 	Summarizer           = core.Summarizer
+	ModelSummarizer      = core.ModelSummarizer
 	Clock                = core.Clock
 	Tokenizer            = core.Tokenizer
 	Tracer               = core.Tracer

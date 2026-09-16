@@ -4,6 +4,12 @@ Todas as mudanças relevantes deste projeto são documentadas neste arquivo.
 O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o
 versionamento segue [SemVer](https://semver.org/lang/pt-BR/).
 
+## [0.2.0] - 2026-09-16
+
+### Added
+
+- **Janela de contexto por modelo e compactação automática (feature 018).** O orçamento passa a derivar de `Capabilities.MaxContextTokens` (menos a reserva de saída e a margem), com `ContextPolicy.CompactAtRatio` (default 0,8) e `SafetyMargin`; `Context.MaxTokens` vira fallback legado. O contexto é reavaliado **a cada chamada de modelo** e a remoção é **pairing-aware** (nunca separa chamada de tool e resultado). O resumo do histórico antigo é injetado com proveniência (`≤1×/turno`), observável em `TurnResult.Compaction` e na interface opcional `CompactionHandler`; a porta opcional `ModelSummarizer` permite resumir com o mesmo modelo do perfil. Supersede o ADR 0005 nas partes de orçamento/gatilho/observabilidade. A contagem agora inclui `system prompt` e definições de tools.
+
 ## [0.1.0] - 2026-09-15
 
 Primeiro release do núcleo reutilizável (`specs/nucleo/001-harness-ia-reutilizavel`).

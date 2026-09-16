@@ -63,6 +63,13 @@ type Summarizer interface {
 	Summarize(ctx context.Context, msgs []Message, maxTokens int) (string, error)
 }
 
+// ModelSummarizer é a extensão opcional de Summarizer que recebe o alias do
+// modelo do turno (feature 018), permitindo ao host resumir com o mesmo modelo
+// do perfil. Quando implementada, tem precedência sobre Summarize.
+type ModelSummarizer interface {
+	SummarizeForModel(ctx context.Context, model string, msgs []Message, maxTokens int) (string, error)
+}
+
 // Clock devolve o instante atual; time.Now() é proibido fora da impl. de sistema.
 type Clock interface {
 	Now() time.Time
