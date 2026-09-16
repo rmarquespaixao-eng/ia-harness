@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"rmarquespaixao/ia-harness/internal/platform/trace"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/platform/trace"
 )
 
 // chaveExterna simula outra chave de contexto, sem relação com o trace_id.

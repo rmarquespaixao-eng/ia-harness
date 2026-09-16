@@ -1,9 +1,9 @@
 package harness
 
 import (
-	gen "rmarquespaixao/ia-harness/contracts/gen"
-	core "rmarquespaixao/ia-harness/internal/core"
-	"rmarquespaixao/ia-harness/internal/engine/telemetry"
+	gen "github.com/rmarquespaixao-eng/ia-harness/contracts/gen"
+	core "github.com/rmarquespaixao-eng/ia-harness/internal/core"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/engine/telemetry"
 )
 
 type (

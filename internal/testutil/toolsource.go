@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	"rmarquespaixao/ia-harness/harness"
+	"github.com/rmarquespaixao-eng/ia-harness/harness"
 )
 
 // MemToolSource é um ToolSource em memória: catálogo fixo e resultados/erros/progresso roteirizados.

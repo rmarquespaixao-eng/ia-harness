@@ -1,4 +1,4 @@
-module rmarquespaixao/ia-harness
+module github.com/rmarquespaixao-eng/ia-harness
 
 go 1.27.1
 

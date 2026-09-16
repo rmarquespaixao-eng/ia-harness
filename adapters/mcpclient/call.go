@@ -9,7 +9,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"rmarquespaixao/ia-harness/harness"
+	"github.com/rmarquespaixao-eng/ia-harness/harness"
 )
 
 // Call executa uma tool no servidor MCP. args nil vira objeto vazio; o

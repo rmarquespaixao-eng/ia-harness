@@ -8,8 +8,8 @@ import (
 	"errors"
 	"net/http"
 
-	"rmarquespaixao/ia-harness/harness"
-	"rmarquespaixao/ia-harness/internal/platform/retry"
+	"github.com/rmarquespaixao-eng/ia-harness/harness"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/platform/retry"
 )
 
 // codesRetryable são os códigos estáveis de *harness.ProviderError tratados

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
-	gen "rmarquespaixao/ia-harness/contracts/gen"
+	gen "github.com/rmarquespaixao-eng/ia-harness/contracts/gen"
 )
 
 // AuditEvent é o evento da trilha de auditoria (contrato JSON Schema gerado).

@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"rmarquespaixao/ia-harness/harness"
-	"rmarquespaixao/ia-harness/internal/testutil"
+	"github.com/rmarquespaixao-eng/ia-harness/harness"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/testutil"
 )
 
 func TestMemToolSource_ListaExecutaComProgressoNaOrdem(t *testing.T) {

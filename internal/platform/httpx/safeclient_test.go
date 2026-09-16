@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"rmarquespaixao/ia-harness/internal/platform/httpx"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/platform/httpx"
 )
 
 // TestNoCrossHostRedirectBloqueiaHostDiferente cobre a regressão do SEC-01

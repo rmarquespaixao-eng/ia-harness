@@ -6,7 +6,7 @@ Contrato de fachada em Go. Assinaturas são o contrato; corpos ficam para a impl
 ## Fachada
 
 ```go
-package harness // import "rmarquespaixao/ia-harness/harness"
+package harness // import "github.com/rmarquespaixao-eng/ia-harness/harness"
 
 // New valida a configuração (falha rápida: porta obrigatória ausente, perfil órfão,
 // schema inválido) e monta o harness. Não abre rede, não lê credencial.

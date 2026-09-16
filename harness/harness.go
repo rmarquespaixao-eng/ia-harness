@@ -3,9 +3,9 @@ package harness
 import (
 	"context"
 
-	core "rmarquespaixao/ia-harness/internal/core"
-	"rmarquespaixao/ia-harness/internal/engine"
-	"rmarquespaixao/ia-harness/internal/engine/telemetry"
+	core "github.com/rmarquespaixao-eng/ia-harness/internal/core"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/engine"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/engine/telemetry"
 )
 
 // Harness is the stable public facade over the internal engine.

@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	core "rmarquespaixao/ia-harness/internal/core"
+	core "github.com/rmarquespaixao-eng/ia-harness/internal/core"
 )
 
 func partImage(mime string, size int64) core.Part {

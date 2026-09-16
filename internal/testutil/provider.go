@@ -5,7 +5,7 @@ import (
 	"context"
 	"errors"
 
-	"rmarquespaixao/ia-harness/harness"
+	"github.com/rmarquespaixao-eng/ia-harness/harness"
 )
 
 // ErrScriptExhausted indica que o roteiro do ScriptedProvider terminou sem step disponível.

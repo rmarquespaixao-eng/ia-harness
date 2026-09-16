@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"rmarquespaixao/ia-harness/internal/platform/clock"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/platform/clock"
 )
 
 func TestSystem_Now_ProximoDoRelogioReal(t *testing.T) {

@@ -5,7 +5,7 @@
 
 ## Contexto
 
-Portão de segurança do SDD (constitution §8) antes do release inicial `v0.1.0`. Escopo auditado: todo o módulo `rmarquespaixao/ia-harness` — loop do agente, política, cliente MCP, adaptadores de provedor, redação, auditoria, memória e CLI de desenvolvimento. O harness é uma **biblioteca embutida**: não expõe HTTP público, não autentica usuário final, não abre banco. Riscos relevantes concentram-se em injeção via conteúdo de tool, vazamento de credencial/PII e condições excepcionais.
+Portão de segurança do SDD (constitution §8) antes do release inicial `v0.1.0`. Escopo auditado: todo o módulo `github.com/rmarquespaixao-eng/ia-harness` — loop do agente, política, cliente MCP, adaptadores de provedor, redação, auditoria, memória e CLI de desenvolvimento. O harness é uma **biblioteca embutida**: não expõe HTTP público, não autentica usuário final, não abre banco. Riscos relevantes concentram-se em injeção via conteúdo de tool, vazamento de credencial/PII e condições excepcionais.
 
 ## Cobertura (OWASP Top 10:2025)
 

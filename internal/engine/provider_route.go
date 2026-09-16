@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sort"
 
-	"rmarquespaixao/ia-harness/internal/engine/media"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/engine/media"
 )
 
 // resolveModel resolve o alias (vazio ⇒ DefaultModel) para o perfil e a chave

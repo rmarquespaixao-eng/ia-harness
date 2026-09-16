@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"rmarquespaixao/ia-harness/adapters/embed/openai"
-	"rmarquespaixao/ia-harness/harness"
+	"github.com/rmarquespaixao-eng/ia-harness/adapters/embed/openai"
+	"github.com/rmarquespaixao-eng/ia-harness/harness"
 )
 
 // fakeCredentials resolve a credencial fixa e registra as refs resolvidas.

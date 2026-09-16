@@ -12,9 +12,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"rmarquespaixao/ia-harness/adapters/memory/inmem"
-	"rmarquespaixao/ia-harness/harness"
-	"rmarquespaixao/ia-harness/internal/testutil"
+	"github.com/rmarquespaixao-eng/ia-harness/adapters/memory/inmem"
+	"github.com/rmarquespaixao-eng/ia-harness/harness"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/testutil"
 )
 
 // errSessionNotFound marca sessão ausente no store fake.

@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"rmarquespaixao/ia-harness/adapters/mcpclient"
+	"github.com/rmarquespaixao-eng/ia-harness/adapters/mcpclient"
 )
 
 // implServidor é a identidade do servidor MCP usado nos testes.

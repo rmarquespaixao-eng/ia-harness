@@ -7,9 +7,9 @@ import (
 	"math"
 	"time"
 
-	gen "rmarquespaixao/ia-harness/contracts/gen"
-	"rmarquespaixao/ia-harness/internal/engine/telemetry"
-	"rmarquespaixao/ia-harness/internal/platform/trace"
+	gen "github.com/rmarquespaixao-eng/ia-harness/contracts/gen"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/engine/telemetry"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/platform/trace"
 )
 
 // usageFor decide o Usage de uma chamada de modelo (FR-025/ADR 0004): uso

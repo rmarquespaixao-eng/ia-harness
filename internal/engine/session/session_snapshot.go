@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"math"
 
-	gen "rmarquespaixao/ia-harness/contracts/gen"
+	gen "github.com/rmarquespaixao-eng/ia-harness/contracts/gen"
 )
 
 // SnapshotSession converte o histórico canônico no snapshot tipado do contrato

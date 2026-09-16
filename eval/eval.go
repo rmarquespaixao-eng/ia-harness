@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 
-	"rmarquespaixao/ia-harness/harness"
+	"github.com/rmarquespaixao-eng/ia-harness/harness"
 )
 
 // Case é um cenário: entrada do usuário e verificação do resultado.

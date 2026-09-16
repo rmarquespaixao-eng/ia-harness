@@ -12,7 +12,7 @@ Estender o modelo canônico e os dois adaptadores de provedor para aceitar **ima
 
 ## Technical Context
 
-**Language/Version**: Go 1.27 (mesmo módulo `rmarquespaixao/ia-harness`) · **Dependencies**: nenhuma nova · **Storage**: n/a (contrato = JSON Schema gerado) · **Testing**: `testing` + `testify`, fakes/`httptest` (sem rede) · **Target**: biblioteca embutida · **Project Type**: library · **Constraints**: sem `net/http` na API pública; contrato gerado sem diff no gate; redação invariável · **Scale**: 2 adaptadores, N perfis de modelo.
+**Language/Version**: Go 1.27 (mesmo módulo `github.com/rmarquespaixao-eng/ia-harness`) · **Dependencies**: nenhuma nova · **Storage**: n/a (contrato = JSON Schema gerado) · **Testing**: `testing` + `testify`, fakes/`httptest` (sem rede) · **Target**: biblioteca embutida · **Project Type**: library · **Constraints**: sem `net/http` na API pública; contrato gerado sem diff no gate; redação invariável · **Scale**: 2 adaptadores, N perfis de modelo.
 
 ## Constitution Check
 

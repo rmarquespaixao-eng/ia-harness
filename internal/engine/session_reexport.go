@@ -1,8 +1,8 @@
 package engine
 
 import (
-	gen "rmarquespaixao/ia-harness/contracts/gen"
-	session "rmarquespaixao/ia-harness/internal/engine/session"
+	gen "github.com/rmarquespaixao-eng/ia-harness/contracts/gen"
+	session "github.com/rmarquespaixao-eng/ia-harness/internal/engine/session"
 )
 
 // SnapshotSession converte a sessão canônica no snapshot do contrato.

@@ -10,10 +10,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"rmarquespaixao/ia-harness/internal/engine/budget"
-	"rmarquespaixao/ia-harness/internal/engine/media"
-	"rmarquespaixao/ia-harness/internal/engine/policy"
-	"rmarquespaixao/ia-harness/internal/platform/schema"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/engine/budget"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/engine/media"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/engine/policy"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/platform/schema"
 )
 
 // installedTool é uma tool do catálogo do turno com a fonte dona e o validador

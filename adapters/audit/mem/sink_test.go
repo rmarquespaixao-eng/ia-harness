@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	auditmemory "rmarquespaixao/ia-harness/adapters/audit/mem"
-	gen "rmarquespaixao/ia-harness/contracts/gen"
-	"rmarquespaixao/ia-harness/harness"
+	auditmemory "github.com/rmarquespaixao-eng/ia-harness/adapters/audit/mem"
+	gen "github.com/rmarquespaixao-eng/ia-harness/contracts/gen"
+	"github.com/rmarquespaixao-eng/ia-harness/harness"
 )
 
 // instante fixo evita dependência do relógio real nos testes.

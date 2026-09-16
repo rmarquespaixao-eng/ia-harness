@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"rmarquespaixao/ia-harness/internal/engine/policy"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/engine/policy"
 )
 
 // errConfirmationPending sinaliza que o turno pausou aguardando decisão humana.

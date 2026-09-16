@@ -3,7 +3,7 @@ package testutil
 import (
 	"context"
 
-	"rmarquespaixao/ia-harness/harness"
+	"github.com/rmarquespaixao-eng/ia-harness/harness"
 )
 
 // FakeMemoryStore guarda fatos em memória, isolados por user_id.

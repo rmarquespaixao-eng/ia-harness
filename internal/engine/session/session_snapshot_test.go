@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	gen "rmarquespaixao/ia-harness/contracts/gen"
+	gen "github.com/rmarquespaixao-eng/ia-harness/contracts/gen"
 )
 
 // snapshotAt é o instante determinístico dos fixtures de snapshot.

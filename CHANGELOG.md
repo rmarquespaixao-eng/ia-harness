@@ -7,6 +7,7 @@ versionamento segue [SemVer](https://semver.org/lang/pt-BR/).
 ## [0.1.0] - 2026-09-15
 
 Primeiro release do núcleo reutilizável (`specs/nucleo/001-harness-ia-reutilizavel`).
+Módulo publicado como `github.com/rmarquespaixao-eng/ia-harness` (ADR 0022).
 
 ### Added
 
@@ -35,4 +36,5 @@ Primeiro release do núcleo reutilizável (`specs/nucleo/001-harness-ia-reutiliz
   1. `make verify` verde no commit do release (fmt/vet/staticcheck/generate sem diff/test/build/vuln).
   2. Criar a tag anotada `v0.1.0` nesse commit (`git tag -a v0.1.0 -m "release v0.1.0"`) e publicá-la (`git push origin v0.1.0`).
   3. O commit da tag e o push são atos do operador — o agente apenas prepara os artefatos (este CHANGELOG e o runbook do smoke).
+- Repositório público e `module path` qualificado: `docs/runbooks/2026-09-16-publicar-modulo-github.md` (ADR 0022).
 - Smoke real do núcleo contra o `/mcp` de homolog: `docs/runbooks/2026-09-15-smoke-homolog-financeiro.md` (T089, pendente de execução do operador).

@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"rmarquespaixao/ia-harness/adapters/session/memory"
-	"rmarquespaixao/ia-harness/harness"
-	"rmarquespaixao/ia-harness/internal/testutil"
+	"github.com/rmarquespaixao-eng/ia-harness/adapters/session/memory"
+	"github.com/rmarquespaixao-eng/ia-harness/harness"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/testutil"
 )
 
 // streamProvider implementa StreamingProvider emitindo reasoning e fragmentos

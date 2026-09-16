@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"rmarquespaixao/ia-harness/harness"
+	"github.com/rmarquespaixao-eng/ia-harness/harness"
 )
 
 // ErrUnknownCredential indica referência de credencial ausente no mapa do fake.

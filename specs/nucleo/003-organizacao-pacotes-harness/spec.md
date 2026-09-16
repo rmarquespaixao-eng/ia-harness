@@ -22,7 +22,7 @@ O objetivo **não** é mudar comportamento: é dar **parede física** entre cont
 
 ### User Story 1 - Host inalterado consome a mesma API (Priority: P1)
 
-O `financeiro-api-v2` (e os exemplos deste repo) continuam importando `rmarquespaixao/ia-harness/harness` e usando os mesmos símbolos (`harness.New`, `harness.Config`, `harness.Session`, `harness.Provider`…) sem uma única alteração.
+O `financeiro-api-v2` (e os exemplos deste repo) continuam importando `github.com/rmarquespaixao-eng/ia-harness/harness` e usando os mesmos símbolos (`harness.New`, `harness.Config`, `harness.Session`, `harness.Provider`…) sem uma única alteração.
 
 **Independent Test**: compilar `examples/financeiro` e `cmd/harnessctl` sem mudar imports/símbolos; `go build ./...` verde; suíte existente sem alteração de expectativa.
 

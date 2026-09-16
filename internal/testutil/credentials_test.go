@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"rmarquespaixao/ia-harness/internal/testutil"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/testutil"
 )
 
 func TestFakeCredentialProvider_ResolveERegistraRefs(t *testing.T) {

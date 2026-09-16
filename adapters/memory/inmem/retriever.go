@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"rmarquespaixao/ia-harness/harness"
+	"github.com/rmarquespaixao-eng/ia-harness/harness"
 )
 
 // Retriever é um harness.Retriever determinístico sobre documentos em memória,

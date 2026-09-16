@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"rmarquespaixao/ia-harness/internal/platform/clock"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/platform/clock"
 )
 
 // applyDefaults preenche os campos opcionais da configuração com os defaults do

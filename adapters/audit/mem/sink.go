@@ -8,7 +8,7 @@ import (
 	"context"
 	"sync"
 
-	"rmarquespaixao/ia-harness/harness"
+	"github.com/rmarquespaixao-eng/ia-harness/harness"
 )
 
 // Sink acumula os eventos de auditoria emitidos, protegido por mutex.

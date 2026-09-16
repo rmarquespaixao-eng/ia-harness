@@ -13,13 +13,13 @@ O primeiro host é o `financeiro-api-v2` (integração in-process via `/mcp` do 
 ## Instalação
 
 ```bash
-go get rmarquespaixao/ia-harness
+go get github.com/rmarquespaixao-eng/ia-harness
 ```
 
 Enquanto o módulo não estiver publicado em tag/proxy (release `v0.1.0` pendente — T090), o host consome o clone local via `replace`:
 
 ```bash
-go mod edit -replace rmarquespaixao/ia-harness=../ia-harness
+go mod edit -replace github.com/rmarquespaixao-eng/ia-harness=../ia-harness
 go mod tidy
 ```
 

@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"rmarquespaixao/ia-harness/harness"
-	"rmarquespaixao/ia-harness/internal/testutil"
+	"github.com/rmarquespaixao-eng/ia-harness/harness"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/testutil"
 )
 
 // redeTocada é acionada por qualquer RoundTrip que chegue ao transporte HTTP

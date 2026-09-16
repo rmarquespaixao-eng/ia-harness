@@ -3,7 +3,7 @@ package testutil
 import (
 	"context"
 
-	"rmarquespaixao/ia-harness/harness"
+	"github.com/rmarquespaixao-eng/ia-harness/harness"
 )
 
 // FakeAuditSink acumula eventos de auditoria em memória.

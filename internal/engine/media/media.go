@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	core "rmarquespaixao/ia-harness/internal/core"
+	core "github.com/rmarquespaixao-eng/ia-harness/internal/core"
 )
 
 const (

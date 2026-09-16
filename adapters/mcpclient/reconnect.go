@@ -8,7 +8,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"rmarquespaixao/ia-harness/internal/platform/retry"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/platform/retry"
 )
 
 // reconnectPolicy é a política do T030: a operação original mais uma tentativa

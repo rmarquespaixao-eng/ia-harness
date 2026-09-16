@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"rmarquespaixao/ia-harness/harness"
+	"github.com/rmarquespaixao-eng/ia-harness/harness"
 )
 
 const (

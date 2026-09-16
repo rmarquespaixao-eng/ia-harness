@@ -1,6 +1,6 @@
 package budget
 
-import core "rmarquespaixao/ia-harness/internal/core"
+import core "github.com/rmarquespaixao-eng/ia-harness/internal/core"
 
 type (
 	Budget     = core.Budget

@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"rmarquespaixao/ia-harness/adapters/provider/openai_responses"
-	"rmarquespaixao/ia-harness/harness"
+	"github.com/rmarquespaixao-eng/ia-harness/adapters/provider/openai_responses"
+	"github.com/rmarquespaixao-eng/ia-harness/harness"
 )
 
 // fixtureSSE é um stream completo da Responses API: texto em dois pedaços, uma

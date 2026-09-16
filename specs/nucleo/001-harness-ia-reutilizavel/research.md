@@ -97,7 +97,7 @@
 
 ## R10 — Módulo, versão Go e dependências
 
-**Decisão**: módulo `rmarquespaixao/ia-harness` (mesma convenção do `financeiro-api-v2`), `go 1.27` (mesma linha). Dependências diretas no v1: `modelcontextprotocol/go-sdk`, `santhosh-tekuri/jsonschema/v6`, `stretchr/testify`; `google/uuid` para IDs. Nada além disso sem justificativa em task (constitution §2).
+**Decisão**: módulo `github.com/rmarquespaixao-eng/ia-harness` (mesma convenção do `financeiro-api-v2`), `go 1.27` (mesma linha). Dependências diretas no v1: `modelcontextprotocol/go-sdk`, `santhosh-tekuri/jsonschema/v6`, `stretchr/testify`; `google/uuid` para IDs. Nada além disso sem justificativa em task (constitution §2).
 
 **Fonte**: `financeiro-api-v2/go.mod` (go 1.27.1, module `rmarquespaixao/...`).
 

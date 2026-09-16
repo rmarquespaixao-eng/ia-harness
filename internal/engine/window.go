@@ -5,7 +5,7 @@ import (
 	"math"
 	"time"
 
-	"rmarquespaixao/ia-harness/internal/engine/telemetry"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/engine/telemetry"
 )
 
 // summaryProvenance prefixa o resumo injetado pela estratégia summarize para que

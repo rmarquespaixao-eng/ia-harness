@@ -8,7 +8,7 @@ import (
 	"io"
 	"strings"
 
-	"rmarquespaixao/ia-harness/harness"
+	"github.com/rmarquespaixao-eng/ia-harness/harness"
 )
 
 const (

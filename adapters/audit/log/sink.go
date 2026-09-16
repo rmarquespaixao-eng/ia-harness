@@ -10,8 +10,8 @@ import (
 	"context"
 	"log/slog"
 
-	"rmarquespaixao/ia-harness/harness"
-	"rmarquespaixao/ia-harness/internal/platform/trace"
+	"github.com/rmarquespaixao-eng/ia-harness/harness"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/platform/trace"
 )
 
 // Mensagens estáveis dos dois registros emitidos por evento.

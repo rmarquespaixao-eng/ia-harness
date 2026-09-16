@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"rmarquespaixao/ia-harness/internal/engine/telemetry"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/engine/telemetry"
 )
 
 // Harness é o núcleo embutível do agente: compõe as portas injetadas pelo host

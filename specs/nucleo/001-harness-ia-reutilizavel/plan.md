@@ -6,7 +6,7 @@
 
 ## Summary
 
-Construir o núcleo do harness como **biblioteca Go embutível** (`rmarquespaixao/ia-harness`) que entrega, in-process, o ciclo completo do agente: cliente MCP (SDK oficial, Streamable HTTP, progresso, reconexão), abstração multi-provedor com fallback, política de permissão com confirmação de destrutivas, sessões persistíveis via portas do host, trilha de auditoria com custo reportado/estimado e memória/RAG por portas. O primeiro consumidor é o `financeiro-api-v2` (integração em feature espelho no repo do host); nenhum serviço, banco ou UI pertence a este repo.
+Construir o núcleo do harness como **biblioteca Go embutível** (`github.com/rmarquespaixao-eng/ia-harness`) que entrega, in-process, o ciclo completo do agente: cliente MCP (SDK oficial, Streamable HTTP, progresso, reconexão), abstração multi-provedor com fallback, política de permissão com confirmação de destrutivas, sessões persistíveis via portas do host, trilha de auditoria com custo reportado/estimado e memória/RAG por portas. O primeiro consumidor é o `financeiro-api-v2` (integração em feature espelho no repo do host); nenhum serviço, banco ou UI pertence a este repo.
 
 **Arquitetura de pacotes: a mesma do `financeiro-api-v2`** — package-by-feature, regra pura separada de I/O, serviço depende de porta e a implementação mora em subpacote (parede física), **contratos versionados como JSON Schema com structs geradas** (`cmd/contractgen` + `go-jsonschema`, embed e gate de `go generate` sem diff), `internal/platform`, `cmd/` e `Makefile verify`. A única adaptação é a fronteira pública: em biblioteca o host importa os pacotes, então o modelo/portas são públicos e os adaptadores são injetados por DI (ver §3 da constitution v1.1.0 e D-12).
 
@@ -30,7 +30,7 @@ Construir o núcleo do harness como **biblioteca Go embutível** (`rmarquespaixa
 
 **Scale/Scope**: single-tenant por instância; ~96 tools no primeiro host (financeiro); sessões curtas; uma execução de turno por sessão (serializada).
 
-**Módulo**: `rmarquespaixao/ia-harness` (mesma convenção do financeiro; repo Gitea ainda sem remote configurado — ajustar no `go.mod` se o remote mudar).
+**Módulo**: `github.com/rmarquespaixao-eng/ia-harness` (mesma convenção do financeiro; repo Gitea ainda sem remote configurado — ajustar no `go.mod` se o remote mudar).
 
 ## Constitution Check
 
@@ -70,7 +70,7 @@ specs/nucleo/001-harness-ia-reutilizavel/
 ### Source Code (repository root)
 
 ```text
-go.mod                    # module rmarquespaixao/ia-harness, go 1.27 (+ tool go-jsonschema)
+go.mod                    # module github.com/rmarquespaixao-eng/ia-harness, go 1.27 (+ tool go-jsonschema)
 Makefile                  # build, test, vet, fmt-check, staticcheck, generate, verify
 
 harness/                  # API PÚBLICA (package harness) — modelo + portas + fachada + motor puro

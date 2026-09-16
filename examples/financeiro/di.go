@@ -17,13 +17,13 @@ import (
 	"strings"
 	"time"
 
-	auditlog "rmarquespaixao/ia-harness/adapters/audit/log"
-	"rmarquespaixao/ia-harness/adapters/mcpclient"
-	"rmarquespaixao/ia-harness/adapters/provider/anthropic"
-	"rmarquespaixao/ia-harness/adapters/provider/openai"
-	openairesponses "rmarquespaixao/ia-harness/adapters/provider/openai_responses"
-	"rmarquespaixao/ia-harness/adapters/session/memory"
-	"rmarquespaixao/ia-harness/harness"
+	auditlog "github.com/rmarquespaixao-eng/ia-harness/adapters/audit/log"
+	"github.com/rmarquespaixao-eng/ia-harness/adapters/mcpclient"
+	"github.com/rmarquespaixao-eng/ia-harness/adapters/provider/anthropic"
+	"github.com/rmarquespaixao-eng/ia-harness/adapters/provider/openai"
+	openairesponses "github.com/rmarquespaixao-eng/ia-harness/adapters/provider/openai_responses"
+	"github.com/rmarquespaixao-eng/ia-harness/adapters/session/memory"
+	"github.com/rmarquespaixao-eng/ia-harness/harness"
 )
 
 // Endpoints, aliases e referências de credencial do host (sem valores).

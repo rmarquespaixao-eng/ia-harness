@@ -11,10 +11,10 @@ import (
 	"os"
 	"time"
 
-	"rmarquespaixao/ia-harness/contracts"
-	gen "rmarquespaixao/ia-harness/contracts/gen"
-	"rmarquespaixao/ia-harness/harness"
-	"rmarquespaixao/ia-harness/internal/platform/schema"
+	"github.com/rmarquespaixao-eng/ia-harness/contracts"
+	gen "github.com/rmarquespaixao-eng/ia-harness/contracts/gen"
+	"github.com/rmarquespaixao-eng/ia-harness/harness"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/platform/schema"
 )
 
 // schemaPath é o contrato canônico do arquivo de configuração.

@@ -14,8 +14,8 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"rmarquespaixao/ia-harness/harness"
-	"rmarquespaixao/ia-harness/internal/platform/httpx"
+	"github.com/rmarquespaixao-eng/ia-harness/harness"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/platform/httpx"
 )
 
 // implementationName identifica o harness perante os servidores MCP.

@@ -3,7 +3,7 @@ package core
 import (
 	"context"
 
-	"rmarquespaixao/ia-harness/internal/platform/trace"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/platform/trace"
 )
 
 // Handler recebe os eventos do turno de forma síncrona e na ordem; o host decide o transporte.

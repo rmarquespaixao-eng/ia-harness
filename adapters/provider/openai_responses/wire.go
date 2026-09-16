@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"strings"
 
-	"rmarquespaixao/ia-harness/harness"
+	"github.com/rmarquespaixao-eng/ia-harness/harness"
 )
 
 // buildBody monta o corpo do request: Params do perfil entram primeiro e os

@@ -19,10 +19,10 @@ import (
 	"sync"
 	"time"
 
-	"rmarquespaixao/ia-harness/harness"
-	"rmarquespaixao/ia-harness/internal/platform/httpx"
-	"rmarquespaixao/ia-harness/internal/platform/providerhttp"
-	"rmarquespaixao/ia-harness/internal/platform/retry"
+	"github.com/rmarquespaixao-eng/ia-harness/harness"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/platform/httpx"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/platform/providerhttp"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/platform/retry"
 )
 
 const (

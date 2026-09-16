@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"sync"
 
-	"rmarquespaixao/ia-harness/harness"
+	"github.com/rmarquespaixao-eng/ia-harness/harness"
 )
 
 // ErrNotFound indica que a sessão pedida não existe no store.

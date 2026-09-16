@@ -20,7 +20,7 @@
 
 **Purpose**: módulo, dependências, gate local, ADRs e a infraestrutura de **contratos JSON Schema** (D-11) — nada disso é story-specific.
 
-- [X] T001 Criar árvore de diretórios do plan (`harness/`, `adapters/`, `internal/platform/`, `contracts/`, `cmd/`, `docs/`) e inicializar `go.mod` com `module rmarquespaixao/ia-harness` e `go 1.27` — plan §Project Structure
+- [X] T001 Criar árvore de diretórios do plan (`harness/`, `adapters/`, `internal/platform/`, `contracts/`, `cmd/`, `docs/`) e inicializar `go.mod` com `module github.com/rmarquespaixao-eng/ia-harness` e `go 1.27` — plan §Project Structure
 - [X] T002 Adicionar dependências diretas e tool do gerador em `go.mod`/`go.sum`: `modelcontextprotocol/go-sdk` v1.8.x, `santhosh-tekuri/jsonschema/v6`, `stretchr/testify`, `google/uuid`, `tool github.com/atombender/go-jsonschema` — plan §Technical Context / R10
 - [X] T003 Criar `Makefile` com `build`, `test`, `vet`, `fmt-check`, `staticcheck`, `generate` e `verify` (`fmt-check + vet + staticcheck + generate sem diff + test + build + govulncheck`) — constitution §7
 - [X] T004 [P] Criar `docs/adr/0001-mcp-sdk-oficial-e-modelo-canonico.md` (D-01/D-02/D-03) com Status/Contexto/Decisão/Consequências
@@ -193,7 +193,7 @@
 - [X] T087 Rodar `govulncheck ./...` e fixar versão do SDK MCP; registrar exceção (se houver) no ADR 0001 — R9
 - [X] T088 Rodar `make verify` completo (fmt/vet/staticcheck/generate sem diff/test/build) e corrigir pendências — constitution §7
 - [X] T089 Escrever `docs/runbooks/2026-09-15-smoke-homolog-financeiro.md` (smoke real com `/mcp` de homolog, chave fora do repo, rollback) e marcar como pendente de execução do operador — AGENTS.md item 8
-- [ ] T090 Criar tag `v0.1.0` (release inicial do módulo) com `CHANGELOG.md` curto
+- [ ] T090 Criar tag `v0.1.0` (release inicial do módulo) com `CHANGELOG.md` curto **e publicar o módulo** (repo público `github.com/rmarquespaixao-eng/ia-harness` + push + tag) — ADR 0022, runbook `docs/runbooks/2026-09-16-publicar-modulo-github.md` (ato do operador)
 - [X] T091 Gerar/atualizar o grafo do código (`graphify .` no repo) após o código fechar — AGENTS.md item 0
 - [X] T092 Auditoria final de rastreabilidade: cada FR-001..031 e CU-HAR-1..6 com task/teste correspondente; lacunas viram task nova ou ADR — portão `/speckit-analyze`
 

@@ -32,6 +32,6 @@ Regra de leitura única: `harness/` = contrato + núcleo (modelo, portas, loop, 
 
 ## Consequências
 
-- `import "rmarquespaixao/ia-harness/adapters/..."` em hosts e exemplos; nenhum símbolo público muda.
+- `import "github.com/rmarquespaixao-eng/ia-harness/adapters/..."` em hosts e exemplos; nenhum símbolo público muda.
 - `docs/features/nucleo-harness.md`, README, constitution §3 e plan §Project Structure passam a apontar os novos caminhos; grafo regenerado.
 - `make verify` deve permanecer verde sem qualquer alteração de comportamento (mudança puramente mecânica).

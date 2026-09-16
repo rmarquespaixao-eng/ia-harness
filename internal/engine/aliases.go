@@ -1,6 +1,6 @@
 package engine
 
-import core "rmarquespaixao/ia-harness/internal/core"
+import core "github.com/rmarquespaixao-eng/ia-harness/internal/core"
 
 type (
 	Config               = core.Config

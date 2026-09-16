@@ -13,8 +13,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"rmarquespaixao/ia-harness/harness"
-	"rmarquespaixao/ia-harness/internal/platform/clock"
+	"github.com/rmarquespaixao-eng/ia-harness/harness"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/platform/clock"
 )
 
 // ErrInvalidFact marca a gravação de um fato sem user_id ou sem texto.

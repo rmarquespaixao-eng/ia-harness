@@ -10,9 +10,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	gen "rmarquespaixao/ia-harness/contracts/gen"
-	"rmarquespaixao/ia-harness/harness"
-	"rmarquespaixao/ia-harness/internal/platform/schema"
+	gen "github.com/rmarquespaixao-eng/ia-harness/contracts/gen"
+	"github.com/rmarquespaixao-eng/ia-harness/harness"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/platform/schema"
 )
 
 // fixedAt é o instante determinístico usado nos fixtures (SC-009: sem relógio,
@@ -335,7 +335,7 @@ func TestHarnessPackageHasNoStorageDeps(t *testing.T) {
 	// Assert — o comando precisa rodar e o próprio harness aparecer no grafo.
 	require.NoError(t, err, "go list -deps ./harness deve executar: %s", output)
 	deps := strings.Split(strings.TrimSpace(string(output)), "\n")
-	require.Contains(t, deps, "rmarquespaixao/ia-harness/harness")
+	require.Contains(t, deps, "github.com/rmarquespaixao-eng/ia-harness/harness")
 
 	var offenders []string
 	for _, dep := range deps {

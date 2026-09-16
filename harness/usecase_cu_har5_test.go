@@ -10,13 +10,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	auditlog "rmarquespaixao/ia-harness/adapters/audit/log"
-	"rmarquespaixao/ia-harness/adapters/session/memory"
-	"rmarquespaixao/ia-harness/contracts"
-	gen "rmarquespaixao/ia-harness/contracts/gen"
-	"rmarquespaixao/ia-harness/harness"
-	"rmarquespaixao/ia-harness/internal/platform/schema"
-	"rmarquespaixao/ia-harness/internal/testutil"
+	auditlog "github.com/rmarquespaixao-eng/ia-harness/adapters/audit/log"
+	"github.com/rmarquespaixao-eng/ia-harness/adapters/session/memory"
+	"github.com/rmarquespaixao-eng/ia-harness/contracts"
+	gen "github.com/rmarquespaixao-eng/ia-harness/contracts/gen"
+	"github.com/rmarquespaixao-eng/ia-harness/harness"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/platform/schema"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/testutil"
 )
 
 // requireAuditSchema valida o marshal do evento real contra o schema normativo
