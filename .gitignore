@@ -1,0 +1,6 @@
+bin/
+*.out
+*.test
+.DS_Store
+contracts/gen-ts/
+graphify-out/

@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ia-harness.local/contracts/config/harness_config.json",
+  "title": "HarnessConfigFile",
+  "description": "Contrato do arquivo de configuração do harness carregado pelo host (credenciais nunca entram aqui; refs resolvidas por CredentialProvider).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["models", "policy"],
+  "properties": {
+    "default_model": { "type": "string", "minLength": 1 },
+    "system_prompt": { "type": "string", "description": "prompt de sistema global; AgentPolicy.system_prompt sobrepõe" },
+    "models": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/model_profile" }
+    },
+    "policy": { "$ref": "#/$defs/policy" },
+    "pricing": { "$ref": "#/$defs/pricing" },
+    "context": { "$ref": "#/$defs/context" },
+    "redaction": { "$ref": "#/$defs/redaction" },
+    "mcp_servers": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/mcp_server" }
+    }
+  },
+  "$defs": {
+    "model_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "model"],
+      "properties": {
+        "provider": { "type": "string", "minLength": 1 },
+        "model": { "type": "string", "minLength": 1 },
+        "capabilities": { "$ref": "#/$defs/capabilities" },
+        "params": { "type": "object" },
+        "fallbacks": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tool_calling": { "type": "boolean" },
+        "streaming": { "type": "boolean" },
+        "max_context_tokens": { "type": "integer", "minimum": 0 },
+        "max_output_tokens": { "type": "integer", "minimum": 0 },
+        "vision": { "type": "boolean" },
+        "documents": { "type": "boolean" },
+        "max_media_bytes": { "type": "integer", "minimum": 0 },
+        "prompt_caching": { "type": "boolean" }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["default"],
+      "properties": {
+        "default": { "enum": ["deny", "allow"] },
+        "agents": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/agent_policy" }
+        }
+      }
+    },
+    "agent_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": { "enum": ["deny", "allow", "read_only"] },
+        "allow_tools": { "type": "array", "items": { "type": "string" } },
+        "deny_tools": { "type": "array", "items": { "type": "string" } },
+        "confirm_tools": { "type": "array", "items": { "type": "string" } },
+        "system_prompt": { "type": "string", "description": "sobrepõe o system_prompt global para este agente" },
+        "overrides": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/tool_policy" }
+        }
+      }
+    },
+    "tool_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "confirm": { "type": "boolean" },
+        "read_only": { "type": "boolean" },
+        "idempotent": { "type": "boolean" },
+        "timeout_seconds": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "pricing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["currency", "input_price_micros_per_million", "output_price_micros_per_million", "bytes_per_token"],
+      "properties": {
+        "currency": { "type": "string", "minLength": 3, "maxLength": 3 },
+        "input_price_micros_per_million": { "type": "integer", "minimum": 0 },
+        "output_price_micros_per_million": { "type": "integer", "minimum": 0 },
+        "bytes_per_token": { "type": "number", "exclusiveMinimum": 0 },
+        "cached_input_price_micros_per_million": { "type": "integer", "minimum": 0 },
+        "cache_write_price_micros_per_million": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_tokens": { "type": "integer", "minimum": 1 },
+        "strategy": { "enum": ["truncate_oldest", "summarize"] }
+      }
+    },
+    "redaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sensitive_keys": { "type": "array", "items": { "type": "string" } },
+        "max_field_bytes": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "mcp_server": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "endpoint"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "endpoint": { "type": "string", "format": "uri" },
+        "credential_ref": { "type": "string" },
+        "tool_timeout_seconds": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

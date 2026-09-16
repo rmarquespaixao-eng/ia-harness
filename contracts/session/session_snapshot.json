@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ia-harness.local/contracts/session/session_snapshot.json",
+  "title": "SessionSnapshot",
+  "description": "Contrato de persistência da sessão (SessionStore). Fonte única do snapshot retomável.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "user_id", "agent_id", "model", "state", "messages", "usage", "created_at", "updated_at"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "user_id": { "type": "string", "minLength": 1 },
+    "agent_id": { "type": "string" },
+    "model": { "type": "string" },
+    "state": { "enum": ["active", "awaiting_confirmation", "closed"] },
+    "messages": { "type": "array", "items": { "$ref": "#/$defs/message" } },
+    "pending": { "$ref": "#/$defs/pending_confirmation" },
+    "usage": { "$ref": "#/$defs/usage_totals" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  },
+  "$defs": {
+    "message": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "role", "parts", "created_at"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "role": { "enum": ["system", "user", "assistant", "tool"] },
+        "parts": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/part" } },
+        "created_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "part": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": { "enum": ["text", "tool_call", "tool_result", "image", "document"] },
+        "text": { "type": "string" },
+        "call": { "$ref": "#/$defs/tool_call" },
+        "result": { "$ref": "#/$defs/tool_result" },
+        "media": { "$ref": "#/$defs/media" }
+      }
+    },
+    "media": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mime", "size_bytes"],
+      "properties": {
+        "mime": { "type": "string", "minLength": 1 },
+        "name": { "type": "string" },
+        "size_bytes": { "type": "integer", "minimum": 0 },
+        "bytes": { "type": "string", "description": "conteúdo inline em base64" },
+        "reference": { "type": "string", "description": "URL/ref da mídia fornecida pelo host" }
+      }
+    },
+    "tool_call": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "namespace", "args"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "namespace": { "type": "string" },
+        "args": true
+      }
+    },
+    "tool_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["call_id", "content"],
+      "properties": {
+        "call_id": { "type": "string", "minLength": 1 },
+        "content": { "type": "array", "items": { "$ref": "#/$defs/result_content" } },
+        "is_error": { "type": "boolean" },
+        "denied": { "type": "boolean" },
+        "truncated": { "type": "boolean" }
+      }
+    },
+    "result_content": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": { "enum": ["text", "json"] },
+        "text": { "type": "string" },
+        "json": true
+      }
+    },
+    "pending_confirmation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["call_id", "tool_name", "args_redacted", "reason", "requested_at"],
+      "properties": {
+        "call_id": { "type": "string", "minLength": 1 },
+        "tool_name": { "type": "string", "minLength": 1 },
+        "args_redacted": { "type": "string" },
+        "reason": { "type": "string" },
+        "requested_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "usage_totals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["input_tokens", "output_tokens", "estimated"],
+      "properties": {
+        "input_tokens": { "type": "integer", "minimum": 0 },
+        "output_tokens": { "type": "integer", "minimum": 0 },
+        "estimated": { "type": "boolean" },
+        "cost_micros": { "type": "integer", "minimum": 0 },
+        "currency": { "type": "string", "minLength": 3, "maxLength": 3 },
+        "cached_input_tokens": { "type": "integer", "minimum": 0 },
+        "cache_write_tokens": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}
