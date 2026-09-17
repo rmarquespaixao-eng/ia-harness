@@ -145,7 +145,7 @@ func TestRouteChatPrimarySuccess(t *testing.T) {
 	var deltas []string
 
 	// Act
-	resp, effective, err := h.chat(context.Background(), profile, providerKey, ChatRequest{}, routeSink{deltas: &deltas})
+	resp, effective, err := h.chat(context.Background(), profile, providerKey, ChatRequest{}, routeSink{deltas: &deltas}, NopHandler{})
 
 	// Assert
 	require.NoError(t, err)
@@ -166,7 +166,7 @@ func TestRouteChatFallbackAfterPrimaryError(t *testing.T) {
 	require.NoError(t, err)
 
 	// Act
-	resp, effective, err := h.chat(context.Background(), profile, providerKey, ChatRequest{}, nil)
+	resp, effective, err := h.chat(context.Background(), profile, providerKey, ChatRequest{}, nil, NopHandler{})
 
 	// Assert
 	require.NoError(t, err)
@@ -189,7 +189,7 @@ func TestRouteChatFallbackAllModelsFail(t *testing.T) {
 	require.NoError(t, err)
 
 	// Act
-	_, effective, err := h.chat(context.Background(), profile, providerKey, ChatRequest{}, nil)
+	_, effective, err := h.chat(context.Background(), profile, providerKey, ChatRequest{}, nil, NopHandler{})
 
 	// Assert
 	require.Error(t, err)
@@ -212,7 +212,7 @@ func TestRouteChatFallbackEmpty(t *testing.T) {
 	require.NoError(t, err)
 
 	// Act
-	_, _, err = h.chat(context.Background(), profile, providerKey, ChatRequest{}, nil)
+	_, _, err = h.chat(context.Background(), profile, providerKey, ChatRequest{}, nil, NopHandler{})
 
 	// Assert
 	require.Error(t, err)
@@ -232,7 +232,7 @@ func TestRouteChatFallbackSkipsConfigError(t *testing.T) {
 	require.NoError(t, err)
 
 	// Act
-	resp, effective, err := h.chat(context.Background(), profile, providerKey, ChatRequest{}, nil)
+	resp, effective, err := h.chat(context.Background(), profile, providerKey, ChatRequest{}, nil, NopHandler{})
 
 	// Assert
 	require.NoError(t, err)
@@ -252,7 +252,7 @@ func TestRouteChatFallbackConfigErrorIsReported(t *testing.T) {
 	require.NoError(t, err)
 
 	// Act
-	_, _, err = h.chat(context.Background(), profile, providerKey, ChatRequest{}, nil)
+	_, _, err = h.chat(context.Background(), profile, providerKey, ChatRequest{}, nil, NopHandler{})
 
 	// Assert
 	require.Error(t, err)

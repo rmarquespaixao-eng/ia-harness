@@ -13,6 +13,9 @@ type (
 	ResultContent       = core.ResultContent
 	ResultContentKind   = core.ResultContentKind
 	PendingConfirmation = core.PendingConfirmation
+	TurnCheckpoint      = core.TurnCheckpoint
+	CheckpointStatus    = core.CheckpointStatus
+	PendingCall         = core.PendingCall
 	UsageTotals         = core.UsageTotals
 	SessionState        = core.SessionState
 	Role                = core.Role

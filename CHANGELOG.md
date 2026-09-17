@@ -4,6 +4,15 @@ Todas as mudanças relevantes deste projeto são documentadas neste arquivo.
 O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o
 versionamento segue [SemVer](https://semver.org/lang/pt-BR/).
 
+## [0.3.0] - 2026-09-17
+
+### Added
+
+- **Rate limiting de provider (feature 019).** Token bucket in-process por alias de provider (`Config.RateLimits`/`Config.DefaultRateLimit`: requisições/minuto, burst e `MaxWait`), aplicado antes de cada chamada de modelo. A porta opcional `Waiter` (default `clock.SystemWait`) suspende a espera respeitando o `context` sem tocar em `Clock`; espera acima de `MaxWait` vira erro retryável `ratelimit/espera-excedida`. Evento opcional `RateLimitEvent`/`RateLimitHandler`.
+- **Cache semântico de respostas (feature 020).** `Config.Cache` + portas `Embedder`/`SemanticCache`: consulta por similaridade de cosseno (chave canônica SHA-256, `MinScore` default 0,9) apenas em turnos determinísticos e sem efeito (sem tools, tool calls, `OutputSchema` ou parâmetros não-determinísticos), isolado por usuário, com TTL e teto de entradas. Hit não chama o provedor (`Usage` zero) e é observável em `TurnResult.Cache` e `CacheEvent`/`CacheHandler`. Adapter `adapters/cache/inmem` para dev/teste.
+- **Execução durável por checkpoint (feature 021).** `Config.Durable` grava o checkpoint do turno no próprio `SessionStore` a cada passo (write-ahead antes de cada tool) e `Run` retoma um turno interrompido sem re-anexar a entrada (`TurnResult.Resumed`). Tool não-idempotente interrompida entre o write-ahead e o resultado **não** é reexecutada (resultado "resultado ambíguo"); a idempotente pode ser. `Session.Checkpoint` adicionado de forma opcional/retrocompatível ao contrato `session_snapshot.json`; `CheckpointEvent`/`CheckpointHandler` opcionais.
+- **Multi-agente por delegação (feature 022).** Agentes nomeados em `Config.Agents` (`AgentSpec`: descrição, modelo, system prompt, filtro de tools por glob, iterações e política). Uma tool sintética `agents.delegate` (`{agent, task}`) permite ao modelo abrir um sub-turno do especialista em **sessão própria** (`ParentSessionID`), com a porta `AgentRunner` implementada pelo motor e `Config.MaxAgentDepth` (default 1) limitando a recursão. Delegações observáveis em `SubAgentEvent`/`SubAgentHandler`.
+
 ## [0.2.0] - 2026-09-16
 
 ### Added

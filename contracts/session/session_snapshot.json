@@ -15,6 +15,8 @@
     "messages": { "type": "array", "items": { "$ref": "#/$defs/message" } },
     "pending": { "$ref": "#/$defs/pending_confirmation" },
     "usage": { "$ref": "#/$defs/usage_totals" },
+    "checkpoint": { "$ref": "#/$defs/checkpoint" },
+    "parent_session_id": { "type": "string" },
     "created_at": { "type": "string", "format": "date-time" },
     "updated_at": { "type": "string", "format": "date-time" }
   },
@@ -111,6 +113,29 @@
         "currency": { "type": "string", "minLength": 3, "maxLength": 3 },
         "cached_input_tokens": { "type": "integer", "minimum": 0 },
         "cache_write_tokens": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "checkpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["turn_id", "status", "step", "updated_at"],
+      "properties": {
+        "turn_id": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["running", "awaiting_confirmation", "completed"] },
+        "step": { "type": "integer", "minimum": 0 },
+        "updated_at": { "type": "string", "format": "date-time" },
+        "pending_call": { "$ref": "#/$defs/pending_call" }
+      }
+    },
+    "pending_call": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["call_id", "tool"],
+      "properties": {
+        "call_id": { "type": "string", "minLength": 1 },
+        "tool": { "type": "string", "minLength": 1 },
+        "args_redacted": { "type": "string" },
+        "idempotent": { "type": "boolean" }
       }
     }
   }

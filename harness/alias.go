@@ -18,6 +18,9 @@ type (
 	ContextStrategy      = core.ContextStrategy
 	ContextPolicy        = core.ContextPolicy
 	RedactionConfig      = core.RedactionConfig
+	RateLimit            = core.RateLimit
+	SemanticCacheConfig  = core.SemanticCacheConfig
+	AgentSpec            = core.AgentSpec
 	RunRequest           = core.RunRequest
 	Budget               = core.Budget
 	StopReason           = core.StopReason
@@ -26,6 +29,15 @@ type (
 	CompactionInfo       = core.CompactionInfo
 	CompactionEvent      = core.CompactionEvent
 	CompactionHandler    = core.CompactionHandler
+	CacheInfo            = core.CacheInfo
+	CacheEvent           = core.CacheEvent
+	CacheHandler         = core.CacheHandler
+	RateLimitEvent       = core.RateLimitEvent
+	RateLimitHandler     = core.RateLimitHandler
+	CheckpointEvent      = core.CheckpointEvent
+	CheckpointHandler    = core.CheckpointHandler
+	SubAgentEvent        = core.SubAgentEvent
+	SubAgentHandler      = core.SubAgentHandler
 	Decision             = core.Decision
 	Provider             = core.Provider
 	ToolSource           = core.ToolSource
@@ -38,6 +50,13 @@ type (
 	Summarizer           = core.Summarizer
 	ModelSummarizer      = core.ModelSummarizer
 	Clock                = core.Clock
+	Waiter               = core.Waiter
+	SemanticCache        = core.SemanticCache
+	CacheQuery           = core.CacheQuery
+	CacheEntry           = core.CacheEntry
+	AgentRunner          = core.AgentRunner
+	SubAgentRequest      = core.SubAgentRequest
+	SubAgentResult       = core.SubAgentResult
 	Tokenizer            = core.Tokenizer
 	Tracer               = core.Tracer
 	Span                 = core.Span
@@ -88,6 +107,9 @@ type (
 	ProviderError        = core.ProviderError
 	OutputError          = core.OutputError
 	Session              = core.Session
+	TurnCheckpoint       = core.TurnCheckpoint
+	CheckpointStatus     = core.CheckpointStatus
+	PendingCall          = core.PendingCall
 )
 
 type SessionSnapshot = gen.SessionSnapshot
@@ -129,4 +151,7 @@ const (
 	StatusError                 = core.StatusError
 	StatusDenied                = core.StatusDenied
 	StatusAwaitingConfirmation  = core.StatusAwaitingConfirmation
+	CheckpointRunning           = core.CheckpointRunning
+	CheckpointAwaitingConfirm   = core.CheckpointAwaitingConfirmation
+	CheckpointCompleted         = core.CheckpointCompleted
 )

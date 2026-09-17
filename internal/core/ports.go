@@ -75,6 +75,59 @@ type Clock interface {
 	Now() time.Time
 }
 
+// Waiter suspende a execução até o prazo (feature 019), respeitando o
+// cancelamento do contexto. Porta separada de Clock para não quebrar
+// implementadores existentes; o default é a espera do sistema.
+type Waiter interface {
+	Wait(ctx context.Context, d time.Duration) error
+}
+
+// SemanticCache é o cache semântico de respostas do host (feature 020). Lookup
+// devolve a melhor entrada acima do limiar; Store guarda a resposta com o vetor.
+type SemanticCache interface {
+	Lookup(ctx context.Context, q CacheQuery) (*CacheEntry, bool, error)
+	Store(ctx context.Context, q CacheQuery, e CacheEntry) error
+}
+
+// CacheQuery identifica uma consulta ao cache semântico.
+type CacheQuery struct {
+	UserID string
+	Model  string
+	Key    string
+	Vector []float32
+}
+
+// CacheEntry é uma resposta cacheada com o instante de criação e o score da
+// última consulta (Score não é persistido; é preenchido no Lookup — feature 020).
+type CacheEntry struct {
+	Response  ChatResponse `json:"response"`
+	CreatedAt time.Time    `json:"created_at"`
+	Score     float64      `json:"-"`
+}
+
+// AgentRunner executa um sub-turno de um agente nomeado (feature 022); é
+// implementado pelo próprio motor para manter a direção das dependências.
+type AgentRunner interface {
+	RunSubAgent(ctx context.Context, req SubAgentRequest) (SubAgentResult, error)
+}
+
+// SubAgentRequest descreve a delegação a um agente.
+type SubAgentRequest struct {
+	ParentSessionID string
+	UserID          string
+	AgentID         string
+	Input           []Part
+	Budget          Budget
+}
+
+// SubAgentResult é o desfecho do sub-turno do agente.
+type SubAgentResult struct {
+	SessionID  string
+	Output     []Part
+	State      SessionState
+	StopReason StopReason
+}
+
 // Tokenizer conta tokens de um texto (feature 010). Opcional: quando o host não
 // injeta um, o núcleo usa a heurística de bytes/token da Pricing.
 type Tokenizer interface {

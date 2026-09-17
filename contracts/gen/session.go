@@ -8,6 +8,88 @@ import "reflect"
 import "time"
 import "unicode/utf8"
 
+type Checkpoint struct {
+	// PendingCall corresponds to the JSON schema field "pending_call".
+	PendingCall *PendingCall `json:"pending_call,omitempty,omitzero"`
+
+	// Status corresponds to the JSON schema field "status".
+	Status CheckpointStatus `json:"status"`
+
+	// Step corresponds to the JSON schema field "step".
+	Step int `json:"step"`
+
+	// TurnId corresponds to the JSON schema field "turn_id".
+	TurnId string `json:"turn_id"`
+
+	// UpdatedAt corresponds to the JSON schema field "updated_at".
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type CheckpointStatus string
+
+const CheckpointStatusAwaitingConfirmation CheckpointStatus = "awaiting_confirmation"
+const CheckpointStatusCompleted CheckpointStatus = "completed"
+const CheckpointStatusRunning CheckpointStatus = "running"
+
+var enumValues_CheckpointStatus = []interface{}{
+	"running",
+	"awaiting_confirmation",
+	"completed",
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *CheckpointStatus) UnmarshalJSON(value []byte) error {
+	var v string
+	if err := json.Unmarshal(value, &v); err != nil {
+		return err
+	}
+	var ok bool
+	for _, expected := range enumValues_CheckpointStatus {
+		if reflect.DeepEqual(v, expected) {
+			ok = true
+			break
+		}
+	}
+	if !ok {
+		return fmt.Errorf("invalid value (expected one of %#v): %#v", enumValues_CheckpointStatus, v)
+	}
+	*j = CheckpointStatus(v)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *Checkpoint) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["status"]; raw != nil && !ok {
+		return fmt.Errorf("field status in Checkpoint: required")
+	}
+	if _, ok := raw["step"]; raw != nil && !ok {
+		return fmt.Errorf("field step in Checkpoint: required")
+	}
+	if _, ok := raw["turn_id"]; raw != nil && !ok {
+		return fmt.Errorf("field turn_id in Checkpoint: required")
+	}
+	if _, ok := raw["updated_at"]; raw != nil && !ok {
+		return fmt.Errorf("field updated_at in Checkpoint: required")
+	}
+	type Plain Checkpoint
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if 0 > plain.Step {
+		return fmt.Errorf("field %s: must be >= %v", "step", 0)
+	}
+	if utf8.RuneCountInString(string(plain.TurnId)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "turn_id", 1)
+	}
+	*j = Checkpoint(plain)
+	return nil
+}
+
 type Media struct {
 	// conteúdo inline em base64
 	Bytes *string `json:"bytes,omitempty,omitzero"`
@@ -204,6 +286,47 @@ func (j *Part) UnmarshalJSON(value []byte) error {
 	return nil
 }
 
+type PendingCall struct {
+	// ArgsRedacted corresponds to the JSON schema field "args_redacted".
+	ArgsRedacted *string `json:"args_redacted,omitempty,omitzero"`
+
+	// CallId corresponds to the JSON schema field "call_id".
+	CallId string `json:"call_id"`
+
+	// Idempotent corresponds to the JSON schema field "idempotent".
+	Idempotent *bool `json:"idempotent,omitempty,omitzero"`
+
+	// Tool corresponds to the JSON schema field "tool".
+	Tool string `json:"tool"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *PendingCall) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["call_id"]; raw != nil && !ok {
+		return fmt.Errorf("field call_id in PendingCall: required")
+	}
+	if _, ok := raw["tool"]; raw != nil && !ok {
+		return fmt.Errorf("field tool in PendingCall: required")
+	}
+	type Plain PendingCall
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if utf8.RuneCountInString(string(plain.CallId)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "call_id", 1)
+	}
+	if utf8.RuneCountInString(string(plain.Tool)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "tool", 1)
+	}
+	*j = PendingCall(plain)
+	return nil
+}
+
 type PendingConfirmation struct {
 	// ArgsRedacted corresponds to the JSON schema field "args_redacted".
 	ArgsRedacted string `json:"args_redacted"`
@@ -322,6 +445,9 @@ type SessionSnapshot struct {
 	// AgentId corresponds to the JSON schema field "agent_id".
 	AgentId string `json:"agent_id"`
 
+	// Checkpoint corresponds to the JSON schema field "checkpoint".
+	Checkpoint *Checkpoint `json:"checkpoint,omitempty,omitzero"`
+
 	// CreatedAt corresponds to the JSON schema field "created_at".
 	CreatedAt time.Time `json:"created_at"`
 
@@ -333,6 +459,9 @@ type SessionSnapshot struct {
 
 	// Model corresponds to the JSON schema field "model".
 	Model string `json:"model"`
+
+	// ParentSessionId corresponds to the JSON schema field "parent_session_id".
+	ParentSessionId *string `json:"parent_session_id,omitempty,omitzero"`
 
 	// Pending corresponds to the JSON schema field "pending".
 	Pending *PendingConfirmation `json:"pending,omitempty,omitzero"`

@@ -12,9 +12,10 @@ import (
 var errConfirmationPending = errors.New("harness: confirmação pendente")
 
 // authorize consulta a política do agente no motor puro de policy
-// (default deny, deny_list, allowlist glob, read_only e confirmação).
+// (default deny, deny_list, allowlist glob, read_only e confirmação). A
+// sobreposição de AgentSpec.Policy (feature 022) é aplicada antes.
 func (h *Harness) authorize(agentID string, tool Tool) policy.Decision {
-	return policy.Evaluate(h.cfg.Policy, agentID, tool)
+	return policy.Evaluate(h.effectivePolicy(agentID), agentID, tool)
 }
 
 // requestConfirmation pede a decisão humana e, em falha do host, persiste a

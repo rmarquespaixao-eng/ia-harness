@@ -131,4 +131,37 @@ type Session struct {
 	Usage     UsageTotals          `json:"usage"`
 	CreatedAt time.Time            `json:"created_at"`
 	UpdatedAt time.Time            `json:"updated_at"`
+	// Checkpoint registra o progresso durável do turno em andamento (feature 021).
+	Checkpoint *TurnCheckpoint `json:"checkpoint,omitempty"`
+	// ParentSessionID liga a sessão à do agente que delegou (feature 022).
+	ParentSessionID string `json:"parent_session_id,omitempty"`
+}
+
+// CheckpointStatus é o estado do turno registrado no checkpoint (feature 021).
+type CheckpointStatus string
+
+const (
+	CheckpointRunning              CheckpointStatus = "running"
+	CheckpointAwaitingConfirmation CheckpointStatus = "awaiting_confirmation"
+	CheckpointCompleted            CheckpointStatus = "completed"
+)
+
+// TurnCheckpoint é o ponto de retomada durável de um turno (feature 021).
+type TurnCheckpoint struct {
+	TurnID    string           `json:"turn_id"`
+	Status    CheckpointStatus `json:"status"`
+	Step      int              `json:"step"`
+	UpdatedAt time.Time        `json:"updated_at"`
+	// PendingCall é o write-ahead da tool em execução; a ausência de resultado
+	// correspondente no histórico caracteriza interrupção ambígua (FR-DU-004).
+	PendingCall *PendingCall `json:"pending_call,omitempty"`
+}
+
+// PendingCall é a intenção persistida de executar uma tool, antes do efeito
+// (write-ahead — feature 021). Os args entram redigidos.
+type PendingCall struct {
+	CallID       string `json:"call_id"`
+	Tool         string `json:"tool"`
+	ArgsRedacted string `json:"args_redacted,omitempty"`
+	Idempotent   bool   `json:"idempotent,omitempty"`
 }

@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"time"
 
 	"github.com/rmarquespaixao-eng/ia-harness/internal/engine/media"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/engine/ratelimit"
 )
 
 // resolveModel resolve o alias (vazio ⇒ DefaultModel) para o perfil e a chave
@@ -68,8 +70,9 @@ func (noopSink) ToolCallArgs(string, string, string) {}
 // último erro em %w. Devolve o alias efetivo (nunca a chave do provider); em
 // erro total devolve o alias primário. O mesmo sink é repassado a todas as
 // tentativas: deltas já emitidos por uma tentativa que falhou permanecem
-// entregues ao host (não há rollback de stream).
-func (h *Harness) chat(ctx context.Context, profile ModelProfile, providerKey string, req ChatRequest, sink StreamSink) (ChatResponse, string, error) {
+// entregues ao host (não há rollback de stream). O rate limit (feature 019) é
+// aplicado por provider antes de cada tentativa.
+func (h *Harness) chat(ctx context.Context, profile ModelProfile, providerKey string, req ChatRequest, sink StreamSink, handler Handler) (ChatResponse, string, error) {
 	if sink == nil {
 		sink = noopSink{}
 	}
@@ -84,6 +87,10 @@ func (h *Harness) chat(ctx context.Context, profile ModelProfile, providerKey st
 				Code:    "model/provider-desconhecido",
 				Message: fmt.Sprintf("provider %q do modelo %q não injetado", key, alias),
 			})
+			return ChatResponse{}, false
+		}
+		if err := h.acquireRateLimit(ctx, handler, key); err != nil {
+			failures = append(failures, err)
 			return ChatResponse{}, false
 		}
 		attemptReq := req
@@ -126,4 +133,52 @@ func (h *Harness) chat(ctx context.Context, profile ModelProfile, providerKey st
 		}
 	}
 	return ChatResponse{}, primaryAlias, fmt.Errorf("harness: todos os modelos falharam (primário %q): %w", primaryAlias, errors.Join(failures...))
+}
+
+// limiterFor devolve o bucket e o limite do provider: entrada específica vence
+// o default (feature 019/FR-RL-002).
+func (h *Harness) limiterFor(key string) (*ratelimit.Bucket, RateLimit) {
+	if rl, ok := h.cfg.RateLimits[key]; ok {
+		return h.limiters[key], rl
+	}
+	return h.defaultLimiter, h.cfg.DefaultRateLimit
+}
+
+// acquireRateLimit respeita o bucket do provider: espera pelo próximo token
+// (cancelável) ou falha retryável quando a espera excede MaxWait
+// (feature 019/FR-RL-003/004/008).
+func (h *Harness) acquireRateLimit(ctx context.Context, handler Handler, providerKey string) error {
+	bucket, rl := h.limiterFor(providerKey)
+	if bucket == nil || !bucket.Limited() {
+		return nil
+	}
+	h.limiterMu.Lock()
+	wait := bucket.Reserve(h.cfg.Clock.Now())
+	h.limiterMu.Unlock()
+	if wait <= 0 {
+		return nil
+	}
+	if rl.MaxWait > 0 && wait > rl.MaxWait {
+		return &ProviderError{
+			Code:    "ratelimit/espera-excedida",
+			Message: fmt.Sprintf("provider %q: espera de %s excede o teto de %s", providerKey, wait, rl.MaxWait),
+		}
+	}
+	h.emitRateLimit(ctx, handler, providerKey, wait)
+	if err := h.cfg.Waiter.Wait(ctx, wait); err != nil {
+		return err
+	}
+	return nil
+}
+
+// emitRateLimit publica o evento quando o Handler implementa RateLimitHandler.
+func (h *Harness) emitRateLimit(ctx context.Context, handler Handler, providerKey string, wait time.Duration) {
+	if handler == nil {
+		return
+	}
+	sink, ok := handler.(RateLimitHandler)
+	if !ok {
+		return
+	}
+	sink.RateLimited(ctx, RateLimitEvent{Provider: providerKey, WaitMS: wait.Milliseconds(), Reason: "requests_per_minute"})
 }

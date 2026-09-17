@@ -26,16 +26,18 @@ func SnapshotSession(s *Session) (gen.SessionSnapshot, error) {
 		return gen.SessionSnapshot{}, err
 	}
 	return gen.SessionSnapshot{
-		Id:        s.ID,
-		UserId:    s.UserID,
-		AgentId:   s.AgentID,
-		Model:     s.Model,
-		State:     gen.SessionSnapshotState(s.State),
-		Messages:  snapshotMessages(s.Messages),
-		Pending:   snapshotPending(s.Pending),
-		Usage:     usage,
-		CreatedAt: s.CreatedAt,
-		UpdatedAt: s.UpdatedAt,
+		Id:              s.ID,
+		UserId:          s.UserID,
+		AgentId:         s.AgentID,
+		Model:           s.Model,
+		State:           gen.SessionSnapshotState(s.State),
+		Messages:        snapshotMessages(s.Messages),
+		Pending:         snapshotPending(s.Pending),
+		Usage:           usage,
+		CreatedAt:       s.CreatedAt,
+		UpdatedAt:       s.UpdatedAt,
+		Checkpoint:      snapshotCheckpoint(s.Checkpoint),
+		ParentSessionId: optionalString(s.ParentSessionID),
 	}, nil
 }
 
@@ -51,16 +53,18 @@ func RestoreSession(snap gen.SessionSnapshot) (*Session, error) {
 		return nil, err
 	}
 	return &Session{
-		ID:        snap.Id,
-		UserID:    snap.UserId,
-		AgentID:   snap.AgentId,
-		Model:     snap.Model,
-		State:     state,
-		Messages:  messages,
-		Pending:   restorePending(snap.Pending),
-		Usage:     restoreUsage(snap.Usage),
-		CreatedAt: snap.CreatedAt,
-		UpdatedAt: snap.UpdatedAt,
+		ID:              snap.Id,
+		UserID:          snap.UserId,
+		AgentID:         snap.AgentId,
+		Model:           snap.Model,
+		State:           state,
+		Messages:        messages,
+		Pending:         restorePending(snap.Pending),
+		Usage:           restoreUsage(snap.Usage),
+		CreatedAt:       snap.CreatedAt,
+		UpdatedAt:       snap.UpdatedAt,
+		Checkpoint:      restoreCheckpoint(snap.Checkpoint),
+		ParentSessionID: stringValue(snap.ParentSessionId),
 	}, nil
 }
 
@@ -298,6 +302,51 @@ func restorePending(pending *gen.PendingConfirmation) *PendingConfirmation {
 		Reason:       pending.Reason,
 		RequestedAt:  pending.RequestedAt,
 	}
+}
+
+// snapshotCheckpoint converte o checkpoint durável para o tipo gerado
+// (feature 021); nil permanece nil (snapshot antigo continua válido).
+func snapshotCheckpoint(checkpoint *TurnCheckpoint) *gen.Checkpoint {
+	if checkpoint == nil {
+		return nil
+	}
+	out := &gen.Checkpoint{
+		TurnId:    checkpoint.TurnID,
+		Status:    gen.CheckpointStatus(checkpoint.Status),
+		Step:      checkpoint.Step,
+		UpdatedAt: checkpoint.UpdatedAt,
+	}
+	if checkpoint.PendingCall != nil {
+		out.PendingCall = &gen.PendingCall{
+			CallId:       checkpoint.PendingCall.CallID,
+			Tool:         checkpoint.PendingCall.Tool,
+			ArgsRedacted: optionalString(checkpoint.PendingCall.ArgsRedacted),
+			Idempotent:   optionalBool(checkpoint.PendingCall.Idempotent),
+		}
+	}
+	return out
+}
+
+// restoreCheckpoint reconstrói o checkpoint canônico a partir do snapshot.
+func restoreCheckpoint(checkpoint *gen.Checkpoint) *TurnCheckpoint {
+	if checkpoint == nil {
+		return nil
+	}
+	out := &TurnCheckpoint{
+		TurnID:    checkpoint.TurnId,
+		Status:    CheckpointStatus(checkpoint.Status),
+		Step:      checkpoint.Step,
+		UpdatedAt: checkpoint.UpdatedAt,
+	}
+	if checkpoint.PendingCall != nil {
+		out.PendingCall = &PendingCall{
+			CallID:       checkpoint.PendingCall.CallId,
+			Tool:         checkpoint.PendingCall.Tool,
+			ArgsRedacted: stringValue(checkpoint.PendingCall.ArgsRedacted),
+			Idempotent:   boolValue(checkpoint.PendingCall.Idempotent),
+		}
+	}
+	return out
 }
 
 // snapshotUsage converte o consumo canônico; o tipo gerado usa int e ponteiros

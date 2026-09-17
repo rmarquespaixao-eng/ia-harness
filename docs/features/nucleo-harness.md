@@ -5,7 +5,9 @@
 
 ## O que faz
 
-O núcleo é composto por **portas** (`Provider`, `ToolSource`, `SessionStore`, `AuditSink`, `MemoryStore`, `Retriever`, `Embedder`, `CredentialProvider`, `Summarizer`, `Clock`) e por regras puras que orquestram um turno sem I/O direto (exceto via portas injetadas). O host monta os adaptadores (`mcpclient`, `provider/*`, `adapters/session/memory`, `audit/*`, …) no seu `di.go` e passa tudo em `harness.Config`; `harness.New` apenas valida e compõe (falha rápida, erro nomeado) e nunca abre rede nem lê credenciais (D-12/ADR 0006).
+O núcleo é composto por **portas** (`Provider`, `ToolSource`, `SessionStore`, `AuditSink`, `MemoryStore`, `Retriever`, `Embedder`, `CredentialProvider`, `Summarizer`, `Clock`, `Waiter`, `SemanticCache`, `AgentRunner`) e por regras puras que orquestram um turno sem I/O direto (exceto via portas injetadas). O host monta os adaptadores (`mcpclient`, `provider/*`, `adapters/session/memory`, `audit/*`, `adapters/cache/inmem`, …) no seu `di.go` e passa tudo em `harness.Config`; `harness.New` apenas valida e compõe (falha rápida, erro nomeado) e nunca abre rede nem lê credenciais (D-12/ADR 0006).
+
+Além do fluxo base, a **Fase D (P2)** acrescentou: **rate limit** por provider com token bucket e espera cancelável (019); **cache semântico** de respostas para turnos determinísticos e sem efeito (020); **execução durável** com checkpoint por passo e retomada sem repetir tool não-idempotente (021); e **multi-agente** por delegação a agentes nomeados via a tool `agents.delegate` (022).
 
 O loop executa **um turno por vez por sessão** (D-10), com execução de tools em sequência: catálogo de tools descoberto por turno e validado por JSON Schema; política **default deny** decidida fora do modelo (imune a prompt injection — FR-019); confirmação de tool destrutiva pausa a sessão em `awaiting_confirmation` e é retomada por `ResolveConfirmation`; falha de transporte do MCP vira resultado de erro ao modelo (nunca resposta fabricada — FR-011). Streaming (`TextDelta`), progresso (`ProgressEvent`), uso (`UsageEvent`), confirmação e erros chegam ao host pelo `Handler` de forma síncrona e ordenada.
 
@@ -30,18 +32,26 @@ Os contratos de fio/persistência são **JSON Schema** em `contracts/<assunto>/*
 | `internal/engine/window.go` | Janela de contexto (CU-HAR-1/3/4; ADR 0005 superseded pelo [0023](../adr/0023-janela-por-modelo-e-compactacao.md)): orçamento por modelo (`contextBudget`), compactação a `CompactAtRatio` reavaliada por chamada de modelo (`applyWindow`), remoção pairing-aware (`removeOldestBlocks`), resumo com proveniência e estimativa de system/tools/mensagens. `buildMessages` mantém o contrato global legado. |
 | `internal/engine/policy/policy.go` | Motor puro de política (CU-HAR-3/FR-016), com deny default, allowlist, read-only, confirmação e idempotência. |
 | `internal/engine/policy_gate.go` | Ponte do loop com a política e persistência de `PendingConfirmation` quando o host não decide. |
-| `internal/engine/provider_route.go` | Roteamento por alias e fallback por chamada (CU-HAR-2), sem repetir tools. |
+| `internal/engine/provider_route.go` | Roteamento por alias e fallback por chamada (CU-HAR-2), sem repetir tools. Aplica o rate limit por provider (`acquireRateLimit`) antes de cada tentativa (feature 019). |
 | `internal/engine/audit_emit.go` | Uso e trilha de auditoria, com custo reportado/estimado, redação e `trace_id`. |
 | `internal/engine/memory_context.go` | Memória/RAG no contexto, com proveniência, redação e degradação observável quando uma porta falha. |
 | `internal/engine/telemetry/cost.go` | Custo e premissa (FR-025/ADR 0004), com estimativa por bytes e saturação. `costMicrosWithCache` aplica os preços de prompt caching (feature 006): input não cacheado, leitura e escrita de cache. |
 | `internal/engine/telemetry/redact.go` | Redação/truncamento antes de log, auditoria e telemetria. |
-| `internal/engine/session/session_snapshot.go` | Conversão de sessão para/de `contracts/gen`; a fachada reexporta `SnapshotSession` e `RestoreSession`. |
+| `internal/engine/session/session_snapshot.go` | Conversão de sessão para/de `contracts/gen`; a fachada reexporta `SnapshotSession` e `RestoreSession`. Mapeia também o `Checkpoint` durável e o `ParentSessionID` (features 021/022). |
+| `internal/engine/ratelimit/bucket.go` | Token bucket determinístico (feature 019): `New(requestsPerMinute, burst)` e `Reserve(now)` (refill pelo relógio injetado, esperas crescentes para chamadas concorrentes). |
+| `internal/platform/clock/wait.go` | `SystemWait` implementa `Waiter` (feature 019): espera cancelável (`time.NewTimer` + `ctx.Done()`), a única espera real da árvore. |
+| `internal/engine/semcache/cache.go` | Regra pura do cache semântico (feature 020): `Eligible`, `CanonicalText`, `Key` (SHA-256), `Cosine`, `Valid`, `Best` e `Defaults`. |
+| `internal/engine/cache.go` | Wiring do cache no turno (feature 020): `prepareCache`/`lookupCache`/`saveCache`, estimativa da economia e `CacheEvent` opcional. |
+| `adapters/cache/inmem/store.go` | `SemanticCache` em memória para dev/teste (feature 020): busca por cosseno, TTL, eviction FIFO e isolamento por usuário/modelo. |
+| `internal/engine/checkpoint.go` | Execução durável (feature 021): `beginCheckpoint`/`checkpointStep`/`checkpointToolStart` (write-ahead), `finishCheckpoint`, `reconcileCheckpoint` (resultado ambíguo para não-idempotente) e `CheckpointEvent` opcional. |
+| `internal/engine/agents/agents.go` | Multi-agente (feature 022): `FilterTools` (glob), `DelegateTool` e o contexto de profundidade (`WithCallContext`/`FromCallContext`). |
+| `internal/engine/agents/source.go` | `ToolSource` sintético que expõe `agents.delegate` e executa o sub-turno pelo `AgentRunner`, convertendo o texto final em resultado de tool. |
 | `internal/engine/budget/budget.go` | Orçamento do turno, com limites de iterações, tokens e tempo de parede. |
-| `internal/core/ports.go` | Portas e tipos de fio públicos, aliasados por `harness/alias.go`. |
-| `internal/core/config.go` | Configuração pública, aliasada por `harness/alias.go`; defaults e validação ficam no motor. Inclui `SystemPrompt` global e `Capabilities.Vision/Documents/MaxMediaBytes` (features 002/005). |
-| `internal/engine/config_validate.go` | Falha rápida em `New`, com defaults de relógio, auditoria, redação, janela e custo. |
-| `internal/core/events.go` | Contrato de eventos do turno; `harness` preserva também `WithTraceID`. |
-| `internal/core/session.go` | Modelo canônico de sessão, mensagens, partes, chamadas, resultados e uso. Inclui as partes multimodais `image`/`document` com `Media{mime,name,size_bytes,bytes,reference}` (feature 002). |
+| `internal/core/ports.go` | Portas e tipos de fio públicos, aliasados por `harness/alias.go`. Inclui `Waiter` (019), `SemanticCache`/`CacheQuery`/`CacheEntry` (020) e `AgentRunner`/`SubAgentRequest`/`SubAgentResult` (022). |
+| `internal/core/config.go` | Configuração pública, aliasada por `harness/alias.go`; defaults e validação ficam no motor. Inclui `SystemPrompt` global, `Capabilities.Vision/Documents/MaxMediaBytes` (002/005), `RateLimits`/`DefaultRateLimit` (019), `Cache` (020), `Durable` (021) e `Agents`/`MaxAgentDepth` (022). |
+| `internal/engine/config_validate.go` | Falha rápida em `New`, com defaults de relógio, auditoria, redação, janela, custo, `Waiter`, cache (desliga sem store/embedder) e `MaxAgentDepth`; valida o modelo dos `Agents`. |
+| `internal/core/events.go` | Contrato de eventos do turno; `harness` preserva também `WithTraceID`. Interfaces opcionais `RateLimitHandler` (019), `CacheHandler` (020), `CheckpointHandler` (021) e `SubAgentHandler` (022). |
+| `internal/core/session.go` | Modelo canônico de sessão, mensagens, partes, chamadas, resultados e uso. Inclui as partes multimodais `image`/`document` com `Media` (002), o `Checkpoint` durável (021) e o `ParentSessionID` da delegação (022). |
 | `internal/engine/media/media.go` | Validação pura de mídia (feature 002/FR-MM-003/004/005): allowlist de MIME (png/jpeg/webp/gif, pdf, text/plain, text/csv), teto por mídia (perfil ou 5 MiB), fonte única (bytes xor reference) e gate de capacidade (`vision` para imagem; `documents` para PDF). `Supports`/`Required` alimentam a elegibilidade de fallback (FR-MM-011). |
 | `internal/core/errors.go` | Erros nomeados do domínio (`Code` estável + causa), aliasados pela fachada. |
 | `harness/loop_test.go`, `harness/usecase_cu_har{1..6}_test.go`, `harness/audit_emit_test.go`, `harness/nonet_test.go` | Testes de API/CU na fachada (cenário 1 do quickstart, Gherkin CU-HAR-1..6, auditoria e ausência de rede). |
@@ -72,7 +82,7 @@ Os contratos de fio/persistência são **JSON Schema** em `contracts/<assunto>/*
 | `internal/testutil/memory.go` | `FakeMemoryStore`, `FakeRetriever`, `FakeSummarizer` (portas de memória simuladas). |
 | `internal/testutil/credentials.go` | `FakeCredentialProvider` (resolução por mapa; registra as refs resolvidas). |
 | `contracts/schemas.go` | `//go:embed */*.json` + `Schema(path)` (:21): os JSON Schemas canônicos embutidos no binário. |
-| `contracts/{audit,config,events,session}/*.json` | Schemas normativos de auditoria, config, envelope de eventos e snapshot de sessão (fonte única — ADR 0006). |
+| `contracts/{audit,config,events,session}/*.json` | Schemas normativos de auditoria, config, envelope de eventos e snapshot de sessão (fonte única — ADR 0006). O snapshot de sessão ganhou `checkpoint`/`parent_session_id` opcionais na feature 021. |
 | `contracts/gen/{audit,config,events,session}.go` | Structs geradas por `go-jsonschema` (**nunca editar à mão**); `contracts/gen/doc.go` carrega o `//go:generate`. |
 | `contracts/conformance_test.go` | Conformidade: marshal dos tipos públicos de sessão, auditoria, eventos e config validado contra os schemas (`Test*Conformance`) e `TestHarnessPackageHasNoStorageDeps` (:327), que garante que `harness` não importa banco/armazenamento. |
 | `cmd/contractgen/main.go` | Gerador de contratos (D-11): `run` (:38) invoca `go tool github.com/atombender/go-jsonschema` sobre `contracts/<assunto>/*.json` → `contracts/gen/<assunto>.go`; `main_test.go` garante a idempotência (gerado == commitado). |
@@ -96,16 +106,19 @@ Os contratos de fio/persistência são **JSON Schema** em `contracts/<assunto>/*
 
 **Retomada de confirmação.** `ResolveConfirmation` carrega a sessão, valida que a pendência existe e é a mesma `callID`, limpa o `Pending`, aplica a decisão sobre a chamada guardada no histórico e **segue o turno de onde pausou** (o restante do loop continua normalmente).
 
+**Fase D — ganchos no loop.** Antes de cada chamada de modelo o motor (1) checa o cache semântico elegível (`prepareCache`/`lookupCache`) — hit conclui o turno sem provedor; (2) aplica a janela; (3) `chat` respeita o rate limit do provider e, com `Durable`, cada passo é persistido (`checkpointStep`/`checkpointToolStart`) e um checkpoint `running` é retomado no `Run` seguinte; (4) a tool `agents.delegate` (quando há `Config.Agents`) abre um sub-turno em sessão própria, com profundidade limitada por `MaxAgentDepth`.
+
 **Portas em jogo por etapa:** `ToolSource` (catálogo/execução), `Provider` (modelo), `SessionStore` (carga/save), `AuditSink` (trilha), `MemoryStore`/`Retriever`/`Embedder` (contexto), `CredentialProvider` (dentro dos adaptadores, por request) e `Clock` (timestamps; `time.Now()` proibido fora de `internal/platform/clock`).
 
 ## Testes
 
 - **Contrato**: `contracts/conformance_test.go` valida o marshal de sessão, auditoria, eventos e config contra os schemas e checa que o pacote `harness` não puxa dependência de armazenamento; `cmd/contractgen/main_test.go` prova a idempotência do gerado.
 - **Cenários do quickstart**: 1 em `harness/loop_test.go` + `usecase_cu_har1_test.go`; 2 em `usecase_cu_har2_test.go` + `provider_route_test.go` + `provider/{openai,anthropic}`; 3 em `usecase_cu_har3_test.go` + `policy_test.go`; 4 em `usecase_cu_har4_test.go` + `window_test.go` + `session_snapshot_test.go` + `adapters/session/memory`; 5 em `usecase_cu_har5_test.go` + `audit_emit_test.go` + `cost_test.go` + `redact_test.go` + `audit/{log,memory}`; 6 em `usecase_cu_har6_test.go` + `memory_context_test.go` + `adapters/memory/inmem` + `adapters/embed/openai`.
+- **Fase D (P2)**: `harness/phase_d_test.go` cobre ponta a ponta throttling com evento (019), hit/miss e isolamento do cache (020), retomada durável sem repetir a tool (021) e delegação a sub-agente em sessão própria (022). Unitários das regras puras em `internal/engine/ratelimit/bucket_test.go`, `internal/engine/semcache/cache_test.go`, `internal/engine/agents/{agents,source}_test.go` e `adapters/cache/inmem/store_test.go`.
 - **Gate local**: `make verify` = `fmt-check` + `vet` + `staticcheck` + `generate` (sem diff) + `test` + `build` + `govulncheck`; nenhum teste toca rede real (`harness/nonet_test.go`).
 
 ## Referências
 
 - Contratos de design: [`contracts/library-api.md`](../../specs/nucleo/001-harness-ia-reutilizavel/contracts/library-api.md), [`events.md`](../../specs/nucleo/001-harness-ia-reutilizavel/contracts/events.md), [`financeiro-integration.md`](../../specs/nucleo/001-harness-ia-reutilizavel/contracts/financeiro-integration.md).
-- Decisões: ADRs [0001](../adr/0001-mcp-sdk-oficial-e-modelo-canonico.md), [0002](../adr/0002-fallback-e-concorrencia-de-sessao.md), [0003](../adr/0003-politica-default-deny-confirmacao-e-redacao.md), [0004](../adr/0004-custo-hibrido-e-memoria-por-portas.md), [0005](../adr/0005-janela-de-contexto.md) (superseded pelo [0023](../adr/0023-janela-por-modelo-e-compactacao.md)), [0006](../adr/0006-contratos-json-schema-e-di.md), [0023](../adr/0023-janela-por-modelo-e-compactacao.md).
+- Decisões: ADRs [0001](../adr/0001-mcp-sdk-oficial-e-modelo-canonico.md), [0002](../adr/0002-fallback-e-concorrencia-de-sessao.md), [0003](../adr/0003-politica-default-deny-confirmacao-e-redacao.md), [0004](../adr/0004-custo-hibrido-e-memoria-por-portas.md), [0005](../adr/0005-janela-de-contexto.md) (superseded pelo [0023](../adr/0023-janela-por-modelo-e-compactacao.md)), [0006](../adr/0006-contratos-json-schema-e-di.md), [0023](../adr/0023-janela-por-modelo-e-compactacao.md), [0024](../adr/0024-rate-limit-de-provider.md), [0025](../adr/0025-cache-semantico-de-respostas.md), [0026](../adr/0026-execucao-duravel-por-checkpoint.md), [0027](../adr/0027-multi-agente-por-delegacao.md).
 - Uso: [README](../../README.md) · validação: [quickstart](../../specs/nucleo/001-harness-ia-reutilizavel/quickstart.md).

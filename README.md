@@ -107,6 +107,8 @@ Fachada: `harness.New` (não abre rede nem lê credencial) · `Run` (um turno; `
 | `MemoryStore` / `Retriever` | opcionais | Fatos duráveis e busca semântica escopados por usuário. Em dev/teste: `adapters/memory/inmem`; em produção o host mantém o índice (ex.: pgvector). |
 | `Embedder` | opcional (junto do `Retriever`) | Embeddings: `adapters/embed/openai` (`/v1/embeddings` compatível). |
 | `Summarizer` | opcional | Resume o histórico cortado quando `Context.Strategy = summarize` (default: `truncate_oldest`). |
+| `SemanticCache` | opcional (junto do `Embedder`; liga com `Cache.Enabled`) | Cache semântico de respostas (Lookup/Store). Em dev/teste: `adapters/cache/inmem`; em produção o host implementa (ex.: pgvector). |
+| `Waiter` | default do sistema | Espera cancelável usada pelo rate limit; `clock.SystemWait` cobre o caso comum. |
 | `Clock` | default do sistema | Relógio injetável para testes determinísticos; `time.Now()` só existe em `internal/platform/clock`. |
 
 `harness.New` falha rápido com erro nomeado (`*ConfigError` com `Code`) se faltar `Credentials`, `Sessions` ou `Logger`, se um `Provider` for nulo ou se um modelo referenciar provider inexistente; `Tools` vazio é válido.
@@ -208,6 +210,21 @@ run := harness.RunRequest{
 - **Teto de resultado:** `Config.ToolResultMaxBytes` (default 32 KiB) corta o resultado que entra no histórico, marcando `Truncated`.
 - **Evals:** pacote `eval` roda cenários (`eval.Run`) com `Recorder` e scorers (`ContainsText`, `UsedTool`).
 - **MCP resources/prompts:** `mcpclient` lista/lê `ListResources`/`ReadResource` e `ListPrompts`/`GetPrompt` (elicitation/OAuth ficam para depois; sampling é deprecado na spec).
+
+## Fase D (P2): rate limit, cache semântico, execução durável e multi-agente
+
+- **Rate limit de provider (019):** `Config.RateLimits` (por alias) e `Config.DefaultRateLimit` aplicam um token bucket (`RequestsPerMinute`/`Burst`/`MaxWait`) antes de cada chamada; a espera usa a porta `Waiter` (default `clock.SystemWait`) e é cancelável. Espera acima de `MaxWait` vira erro retryável `ratelimit/espera-excedida`; `RateLimitEvent` é opcional via `RateLimitHandler`.
+- **Cache semântico (020):** `Config.Cache` (`Enabled`/`MinScore`/`TTL`/`MaxEntries`) + `Config.Embedder`/`Config.CacheStore` consultam respostas por similaridade de cosseno, **só** em turnos determinísticos e sem efeito (sem tools, tool calls, `OutputSchema` ou `temperature`/`top_p`). Hit não chama o provedor, conta `Usage` zero e aparece em `TurnResult.Cache`/`CacheEvent`. Há `adapters/cache/inmem` para dev/teste.
+- **Execução durável (021):** `Config.Durable=true` grava o checkpoint do turno no `SessionStore` a cada passo (write-ahead antes de cada tool); `Run` retoma um turno interrompido sem re-anexar a entrada (`TurnResult.Resumed`). Tool não-idempotente interrompida entre write-ahead e resultado **não** é reexecutada. `CheckpointEvent` opcional.
+- **Multi-agente (022):** `Config.Agents` declara especialistas (`AgentSpec`) e a tool `agents.delegate` (`{agent, task}`) abre um sub-turno do agente em sessão própria, com filtro de tools e `Config.MaxAgentDepth` (default 1) limitando a recursão; `SubAgentEvent` opcional.
+```go
+cfg.Durable = true
+cfg.RateLimits = map[string]harness.RateLimit{"openrouter": {RequestsPerMinute: 60, Burst: 2, MaxWait: 5 * time.Second}}
+cfg.Cache = harness.SemanticCacheConfig{Enabled: true, MinScore: 0.92}
+cfg.Agents = map[string]harness.AgentSpec{
+    "conciliador": {Description: "confere lançamentos", Tools: []string{"financeiro.*"}},
+}
+```
 
 ## Gate local (`make verify`)
 

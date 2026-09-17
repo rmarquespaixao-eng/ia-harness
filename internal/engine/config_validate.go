@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/rmarquespaixao-eng/ia-harness/internal/engine/semcache"
 	"github.com/rmarquespaixao-eng/ia-harness/internal/platform/clock"
 )
 
@@ -31,6 +32,25 @@ func applyDefaults(c *Config) {
 	}
 	if c.ToolResultMaxBytes <= 0 {
 		c.ToolResultMaxBytes = defaultToolResultMaxBytes
+	}
+	if c.Waiter == nil {
+		c.Waiter = clock.SystemWait{}
+	}
+	if c.MaxAgentDepth <= 0 {
+		c.MaxAgentDepth = 1
+	}
+	c.Cache = semcache.Defaults(c.Cache)
+	if c.Cache.Enabled && c.CacheStore == nil {
+		c.Cache.Enabled = false
+		if c.Logger != nil {
+			c.Logger.Warn("cache semântico habilitado sem SemanticCache injetado; seguindo desligado")
+		}
+	}
+	if c.Cache.Enabled && c.Embedder == nil {
+		c.Cache.Enabled = false
+		if c.Logger != nil {
+			c.Logger.Warn("cache semântico habilitado sem Embedder injetado; seguindo desligado")
+		}
 	}
 	applyMiddleware(c)
 }
@@ -97,6 +117,14 @@ func validate(c *Config) error {
 	if c.DefaultModel != "" {
 		if _, ok := c.Models[c.DefaultModel]; !ok {
 			return &ConfigError{Code: "config/default-model-desconhecido", Message: fmt.Sprintf("default_model %q não existe em Models", c.DefaultModel)}
+		}
+	}
+	for agentID, spec := range c.Agents {
+		if spec.Model == "" {
+			continue
+		}
+		if _, ok := c.Models[spec.Model]; !ok {
+			return &ConfigError{Code: "config/agente-modelo-desconhecido", Message: fmt.Sprintf("agente %q referencia modelo %q inexistente", agentID, spec.Model)}
 		}
 	}
 	if c.Credentials == nil {

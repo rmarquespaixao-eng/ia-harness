@@ -146,6 +146,69 @@ type CompactionHandler interface {
 	Compaction(ctx context.Context, ev CompactionEvent)
 }
 
+// RateLimitEvent reporta que uma chamada de provider foi espaçada pelo limite de
+// vazão (feature 019). É opcional via RateLimitHandler.
+type RateLimitEvent struct {
+	Provider string `json:"provider"`
+	WaitMS   int64  `json:"wait_ms"`
+	// Reason descreve a origem do throttle (ex.: "requests_per_minute").
+	Reason string `json:"reason,omitempty"`
+}
+
+// RateLimitHandler é a extensão opcional de Handler para observar o throttling
+// de provider (feature 019).
+type RateLimitHandler interface {
+	RateLimited(ctx context.Context, ev RateLimitEvent)
+}
+
+// CacheEvent reporta o uso do cache semântico no turno (feature 020). É
+// opcional via CacheHandler.
+type CacheEvent struct {
+	SessionID string  `json:"session_id"`
+	Model     string  `json:"model"`
+	Hit       bool    `json:"hit"`
+	Score     float64 `json:"score,omitempty"`
+	Key       string  `json:"key,omitempty"`
+	// SavedMicros é a economia estimada quando há hit (custo que não foi gasto).
+	SavedMicros int64 `json:"saved_micros,omitempty"`
+}
+
+// CacheHandler é a extensão opcional de Handler para observar o cache (020).
+type CacheHandler interface {
+	Cache(ctx context.Context, ev CacheEvent)
+}
+
+// CheckpointEvent reporta um ponto durável persistido (feature 021). É opcional
+// via CheckpointHandler.
+type CheckpointEvent struct {
+	SessionID string `json:"session_id"`
+	TurnID    string `json:"turn_id"`
+	Status    string `json:"status"`
+	Step      int    `json:"step"`
+}
+
+// CheckpointHandler é a extensão opcional de Handler para observar os
+// checkpoints duráveis (feature 021).
+type CheckpointHandler interface {
+	Checkpoint(ctx context.Context, ev CheckpointEvent)
+}
+
+// SubAgentEvent reporta uma delegação a um agente nomeado (feature 022). É
+// opcional via SubAgentHandler.
+type SubAgentEvent struct {
+	ParentSessionID string `json:"parent_session_id"`
+	ChildSessionID  string `json:"child_session_id,omitempty"`
+	Agent           string `json:"agent"`
+	Depth           int    `json:"depth"`
+	Status          string `json:"status"`
+}
+
+// SubAgentHandler é a extensão opcional de Handler para observar as delegações
+// entre agentes (feature 022).
+type SubAgentHandler interface {
+	SubAgent(ctx context.Context, ev SubAgentEvent)
+}
+
 // Status dos resultados de tool (ToolResultEvent.Status e ToolExecution.Status).
 const (
 	StatusOK     = "ok"

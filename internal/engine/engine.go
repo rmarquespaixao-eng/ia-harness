@@ -3,7 +3,10 @@ package engine
 import (
 	"context"
 	"fmt"
+	"sync"
 
+	"github.com/rmarquespaixao-eng/ia-harness/internal/engine/agents"
+	"github.com/rmarquespaixao-eng/ia-harness/internal/engine/ratelimit"
 	"github.com/rmarquespaixao-eng/ia-harness/internal/engine/telemetry"
 )
 
@@ -13,6 +16,12 @@ import (
 type Harness struct {
 	cfg      Config
 	redactor *telemetry.Redactor
+
+	// limiters implementam o token bucket por provider (feature 019); o mutex
+	// protege o estado dos buckets compartilhados entre turnos concorrentes.
+	limiters       map[string]*ratelimit.Bucket
+	defaultLimiter *ratelimit.Bucket
+	limiterMu      sync.Mutex
 }
 
 // New valida a configuração (falha rápida, erro nomeado) e monta o harness.
@@ -24,7 +33,21 @@ func New(cfg Config) (*Harness, error) {
 	if err := validate(&cfg); err != nil {
 		return nil, err
 	}
-	return &Harness{cfg: cfg, redactor: telemetry.NewRedactor(cfg.Redaction)}, nil
+	h := &Harness{
+		cfg:      cfg,
+		redactor: telemetry.NewRedactor(cfg.Redaction),
+		limiters: make(map[string]*ratelimit.Bucket, len(cfg.RateLimits)),
+	}
+	for key, rl := range cfg.RateLimits {
+		h.limiters[key] = ratelimit.New(rl.RequestsPerMinute, rl.Burst)
+	}
+	h.defaultLimiter = ratelimit.New(cfg.DefaultRateLimit.RequestsPerMinute, cfg.DefaultRateLimit.Burst)
+	if len(cfg.Agents) > 0 {
+		// A fonte sintética de delegação entra no catálogo depois do middleware
+		// (feature 022); o motor é o próprio AgentRunner.
+		h.cfg.Tools = append(h.cfg.Tools, agents.NewSource(h, cfg.Agents, cfg.MaxAgentDepth))
+	}
+	return h, nil
 }
 
 // Run executa um turno do agente de ponta a ponta e bloqueia até concluir
@@ -44,12 +67,22 @@ func (h *Harness) Run(ctx context.Context, req RunRequest, handler Handler) (Tur
 			Message: "sessão aguardando confirmação; use ResolveConfirmation",
 		}
 	}
+	// Retomada durável (feature 021): checkpoint "running" continua o turno do
+	// histórico persistido; a entrada nova não é re-anexada.
+	resumed := h.cfg.Durable && session.Checkpoint != nil && session.Checkpoint.Status == CheckpointRunning
+	if resumed {
+		req.Input = nil
+	}
 	result, runErr := h.runTurnTraced(ctx, session, req, handler, nil)
+	result.Resumed = resumed
 	if runErr != nil {
 		return result, runErr
 	}
 	// O save sobrevive ao cancelamento do turno: a sessão precisa ficar no ponto
 	// consistente mesmo quando Run retorna StopCancelled (FR-010/CU-HAR-1 6a).
+	if h.cfg.Durable {
+		h.finishCheckpoint(session, result)
+	}
 	if err := h.cfg.Sessions.Save(context.WithoutCancel(ctx), session); err != nil {
 		return result, fmt.Errorf("harness: salvar sessão: %w", err)
 	}
@@ -94,6 +127,10 @@ func (h *Harness) ResolveConfirmation(ctx context.Context, sessionID, callID str
 	}
 	session.Pending = nil
 	session.State = SessionActive
+	if h.cfg.Durable && session.Checkpoint != nil {
+		session.Checkpoint.Status = CheckpointRunning
+		session.Checkpoint.PendingCall = nil
+	}
 	req := RunRequest{SessionID: sessionID, UserID: session.UserID, AgentID: session.AgentID}
 	result, runErr := h.runTurnTraced(ctx, session, req, handler, &resumeState{call: call, decision: d})
 	if runErr != nil {
@@ -158,6 +195,9 @@ func (h *Harness) loadOrCreateSession(ctx context.Context, req RunRequest) (*Ses
 		if req.Model != "" {
 			session.Model = req.Model
 		}
+		if req.ParentSessionID != "" {
+			session.ParentSessionID = req.ParentSessionID
+		}
 		return session, nil
 	}
 
@@ -173,13 +213,14 @@ func (h *Harness) loadOrCreateSession(ctx context.Context, req RunRequest) (*Ses
 	}
 	now := h.cfg.Clock.Now()
 	return &Session{
-		ID:        newID(),
-		UserID:    req.UserID,
-		AgentID:   req.AgentID,
-		Model:     model,
-		State:     SessionActive,
-		CreatedAt: now,
-		UpdatedAt: now,
+		ID:              newID(),
+		UserID:          req.UserID,
+		AgentID:         req.AgentID,
+		Model:           model,
+		State:           SessionActive,
+		CreatedAt:       now,
+		UpdatedAt:       now,
+		ParentSessionID: req.ParentSessionID,
 	}, nil
 }
 
@@ -194,4 +235,79 @@ func findPendingCall(session *Session, callID string) (ToolCall, bool) {
 		}
 	}
 	return ToolCall{}, false
+}
+
+// effectivePolicy devolve a política do agente, aplicando a sobreposição
+// declarada em AgentSpec.Policy (feature 022) quando presente.
+func (h *Harness) effectivePolicy(agentID string) PolicyConfig {
+	spec, ok := h.cfg.Agents[agentID]
+	if !ok || spec.Policy == nil {
+		return h.cfg.Policy
+	}
+	merged := h.cfg.Policy
+	agents := make(map[string]AgentPolicy, len(merged.Agents)+1)
+	for key, value := range merged.Agents {
+		agents[key] = value
+	}
+	agents[agentID] = *spec.Policy
+	merged.Agents = agents
+	return merged
+}
+
+// RunSubAgent executa o sub-turno de um agente nomeado (feature 022) em sessão
+// própria, herdando o usuário/contexto do pai. Implementa core.AgentRunner.
+func (h *Harness) RunSubAgent(ctx context.Context, req SubAgentRequest) (SubAgentResult, error) {
+	spec, ok := h.cfg.Agents[req.AgentID]
+	if !ok {
+		return SubAgentResult{}, &ConfigError{Code: "agents/agente-desconhecido", Message: fmt.Sprintf("agente %q não configurado", req.AgentID)}
+	}
+	cc := agents.FromCallContext(ctx)
+	handler := handlerOrNop(cc.Handler)
+	h.emitSubAgent(ctx, handler, req.ParentSessionID, "", req.AgentID, cc.Depth, "running")
+
+	model := spec.Model
+	if model == "" {
+		model = h.cfg.DefaultModel
+	}
+	result, err := h.Run(ctx, RunRequest{
+		UserID:          req.UserID,
+		AgentID:         req.AgentID,
+		Model:           model,
+		Input:           req.Input,
+		MaxIterations:   spec.MaxIterations,
+		Budget:          req.Budget,
+		ParentSessionID: req.ParentSessionID,
+	}, handler)
+
+	status := "completed"
+	if err != nil {
+		status = "error"
+	}
+	h.emitSubAgent(ctx, handler, req.ParentSessionID, result.SessionID, req.AgentID, cc.Depth, status)
+
+	return SubAgentResult{
+		SessionID:  result.SessionID,
+		Output:     result.Output,
+		State:      result.State,
+		StopReason: result.StopReason,
+	}, err
+}
+
+// emitSubAgent publica o evento de delegação quando o Handler implementa a
+// interface opcional SubAgentHandler (feature 022).
+func (h *Harness) emitSubAgent(ctx context.Context, handler Handler, parent, child, agent string, depth int, status string) {
+	if handler == nil {
+		return
+	}
+	sink, ok := handler.(SubAgentHandler)
+	if !ok {
+		return
+	}
+	sink.SubAgent(ctx, SubAgentEvent{
+		ParentSessionID: parent,
+		ChildSessionID:  child,
+		Agent:           agent,
+		Depth:           depth,
+		Status:          status,
+	})
 }

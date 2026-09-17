@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/rmarquespaixao-eng/ia-harness/internal/engine/agents"
 	"github.com/rmarquespaixao-eng/ia-harness/internal/engine/budget"
 	"github.com/rmarquespaixao-eng/ia-harness/internal/engine/media"
 	"github.com/rmarquespaixao-eng/ia-harness/internal/engine/policy"
@@ -171,13 +172,51 @@ func (h *Harness) effectiveToolTimeout(agentID string, tool Tool) time.Duration 
 	return tool.Timeout
 }
 
-// effectiveSystemPrompt resolve o system prompt do turno: o override do agente
-// (quando não vazio) vence o global (feature 005/FR-SP-001).
+// effectiveSystemPrompt resolve o system prompt do turno: o do AgentSpec
+// (feature 022) vence; depois o override do agente (quando não vazio) e o
+// global (feature 005/FR-SP-001).
 func (h *Harness) effectiveSystemPrompt(agentID string) string {
+	if spec, ok := h.cfg.Agents[agentID]; ok && strings.TrimSpace(spec.SystemPrompt) != "" {
+		return spec.SystemPrompt
+	}
 	if agent, ok := h.cfg.Policy.Agents[agentID]; ok && strings.TrimSpace(agent.SystemPrompt) != "" {
 		return agent.SystemPrompt
 	}
 	return h.cfg.SystemPrompt
+}
+
+// agentModel resolve o alias de modelo do turno: o do AgentSpec vence o da
+// sessão (feature 022).
+func (h *Harness) agentModel(session *Session) string {
+	if spec, ok := h.cfg.Agents[session.AgentID]; ok && spec.Model != "" {
+		return spec.Model
+	}
+	return session.Model
+}
+
+// filterCatalog restringe o catálogo de tools do sub-turno pelos globs do
+// AgentSpec (feature 022/FR-MA-006), preservando a ordem original.
+func filterCatalog(catalog []installedTool, patterns []string) []installedTool {
+	allowed := make(map[string]bool, len(catalog))
+	for _, tool := range agents.FilterTools(toolDefsOf(catalog), patterns) {
+		allowed[toolKey(tool)] = true
+	}
+	out := make([]installedTool, 0, len(catalog))
+	for _, it := range catalog {
+		if allowed[it.key] {
+			out = append(out, it)
+		}
+	}
+	return out
+}
+
+// toolDefsOf extrai as definições publicadas de um catálogo instalado.
+func toolDefsOf(catalog []installedTool) []Tool {
+	out := make([]Tool, 0, len(catalog))
+	for _, it := range catalog {
+		out = append(out, it.tool)
+	}
+	return out
 }
 
 // emitToolResult emite o evento de resultado com o resumo redigido.
@@ -232,18 +271,39 @@ func (h *Harness) runTurn(ctx context.Context, session *Session, req RunRequest,
 	for _, mw := range h.cfg.HandlerMiddleware {
 		handler = mw(handler)
 	}
-	turnBudget := budget.New(req.Budget, req.MaxIterations, h.cfg.Clock.Now())
+	// Contexto de delegação (feature 022): profundidade, usuário e handler do
+	// pai acompanham o turno; a tool agents.delegate os consome.
+	ctx = agents.WithCallContext(ctx, agents.CallContext{
+		Depth:           agents.FromCallContext(ctx).Depth,
+		UserID:          session.UserID,
+		ParentSessionID: session.ID,
+		Handler:         handler,
+	})
+	maxIterations := req.MaxIterations
+	if spec, ok := h.cfg.Agents[session.AgentID]; ok && maxIterations == 0 {
+		maxIterations = spec.MaxIterations
+	}
+	turnBudget := budget.New(req.Budget, maxIterations, h.cfg.Clock.Now())
 
 	catalog, err := h.catalog(ctx)
 	if err != nil {
 		handler.Error(ctx, ErrorEvent{Scope: ErrorMCP, Message: "catálogo de tools indisponível; seguindo sem tools", Retryable: true})
 		catalog = nil
 	}
+	// Filtro de tools do agente (feature 022/FR-MA-006): vazio herda o catálogo.
+	if spec, ok := h.cfg.Agents[session.AgentID]; ok && len(spec.Tools) > 0 {
+		catalog = filterCatalog(catalog, spec.Tools)
+	}
 	toolDefs := make([]Tool, 0, len(catalog))
 	for _, it := range catalog {
 		toolDefs = append(toolDefs, it.tool)
 	}
 
+	// Retomada durável (feature 021): resolve write-ahead interrompido antes de
+	// continuar o histórico.
+	if err := h.reconcileCheckpoint(ctx, session, handler, catalog); err != nil {
+		return TurnResult{SessionID: session.ID, Model: session.Model}, err
+	}
 	if len(req.Input) > 0 {
 		session.Messages = append(session.Messages, Message{
 			ID:        newID(),
@@ -251,6 +311,9 @@ func (h *Harness) runTurn(ctx context.Context, session *Session, req RunRequest,
 			Parts:     req.Input,
 			CreatedAt: h.cfg.Clock.Now(),
 		})
+	}
+	if err := h.beginCheckpoint(ctx, session, handler); err != nil {
+		return TurnResult{SessionID: session.ID, Model: session.Model}, err
 	}
 	// O contexto de trabalho é memória + histórico; a janela é aplicada por
 	// chamada de modelo dentro do loop (feature 018), pois o histórico cresce
@@ -260,6 +323,7 @@ func (h *Harness) runTurn(ctx context.Context, session *Session, req RunRequest,
 
 	result := TurnResult{SessionID: session.ID, Model: session.Model}
 	var executions []ToolExecution
+	var pendingCache *cacheAttempt
 
 	// Structured output (feature 009): compila o schema pedido uma vez por turno.
 	var outputValidator *schema.Validator
@@ -293,6 +357,9 @@ func (h *Harness) runTurn(ctx context.Context, session *Session, req RunRequest,
 			res = deniedResult(resume.call.ID, "operação negada: "+resume.decision.Reason)
 			exec.Status = StatusDenied
 		default:
+			if err := h.checkpointToolStart(ctx, session, handler, it, resume.call); err != nil {
+				return result, err
+			}
 			var callErr error
 			res, callErr = h.callTool(ctx, it, resume.call, h.effectiveToolTimeout(session.AgentID, it.tool), nil)
 			if callErr != nil {
@@ -313,6 +380,9 @@ func (h *Harness) runTurn(ctx context.Context, session *Session, req RunRequest,
 		session.Messages = append(session.Messages, toolMessage(resume.call, res, h.cfg.Clock.Now(), h.cfg.ToolResultMaxBytes))
 		messages = append(messages, session.Messages[len(session.Messages)-1])
 		executions = append(executions, exec)
+		if err := h.checkpointStep(ctx, session, handler); err != nil {
+			return result, err
+		}
 	}
 
 	for {
@@ -328,7 +398,7 @@ func (h *Harness) runTurn(ctx context.Context, session *Session, req RunRequest,
 		}
 		turnBudget.StartIteration()
 
-		profile, providerKey, err := h.resolveModel(session.Model)
+		profile, providerKey, err := h.resolveModel(h.agentModel(session))
 		if err != nil {
 			return result, err
 		}
@@ -371,6 +441,32 @@ func (h *Harness) runTurn(ctx context.Context, session *Session, req RunRequest,
 			PromptCaching:   profile.Capabilities.PromptCaching,
 			OutputSchema:    req.OutputSchema,
 		}
+		// Cache semântico (feature 020): consulta antes do provedor; hit conclui
+		// o turno sem chamada de modelo. Só turnos elegíveis (sem tools).
+		if attempt := h.prepareCache(ctx, session, chatReq, toolDefs); attempt != nil {
+			if cachedResp, info, hit := h.lookupCache(ctx, handler, attempt); hit {
+				assistant := cachedResp.Message
+				if assistant.ID == "" {
+					assistant.ID = messageID
+				}
+				if assistant.Role == "" {
+					assistant.Role = RoleAssistant
+				}
+				if assistant.CreatedAt.IsZero() {
+					assistant.CreatedAt = h.cfg.Clock.Now()
+				}
+				session.Messages = append(session.Messages, assistant)
+				result.Cache = info
+				result.Model = h.aliasFor(profile)
+				result.Output = assistant.Parts
+				if err := h.checkpointStep(ctx, session, handler); err != nil {
+					return result, err
+				}
+				session.UpdatedAt = h.cfg.Clock.Now()
+				return finish(StopCompleted)
+			}
+			pendingCache = attempt
+		}
 		chatStart := h.cfg.Clock.Now()
 		modelCtx, modelSpan := h.cfg.Tracer.StartModel(ctx, ModelAttrs{Provider: profile.Provider, Model: profile.Model})
 		resp, effectiveModel, err := h.chat(modelCtx, profile, providerKey, chatReq, turnSink{
@@ -378,7 +474,7 @@ func (h *Harness) runTurn(ctx context.Context, session *Session, req RunRequest,
 			sessionID: session.ID,
 			messageID: messageID,
 			handler:   handler,
-		})
+		}, handler)
 		modelSpan.End(err)
 		latency := h.cfg.Clock.Now().Sub(chatStart)
 		if err != nil {
@@ -388,6 +484,10 @@ func (h *Harness) runTurn(ctx context.Context, session *Session, req RunRequest,
 			result.ToolCalls = executions
 			result.Usage = session.Usage
 			return result, fmt.Errorf("harness: chamada de modelo: %w", err)
+		}
+		if pendingCache != nil {
+			h.saveCache(ctx, handler, session, pendingCache, resp)
+			pendingCache = nil
 		}
 
 		assistant := resp.Message
@@ -428,6 +528,9 @@ func (h *Harness) runTurn(ctx context.Context, session *Session, req RunRequest,
 		})
 		session.UpdatedAt = h.cfg.Clock.Now()
 		result.Model = effectiveModel
+		if err := h.checkpointStep(ctx, session, handler); err != nil {
+			return result, err
+		}
 
 		if len(resp.ToolCalls) == 0 {
 			if outputValidator != nil {
@@ -442,6 +545,9 @@ func (h *Harness) runTurn(ctx context.Context, session *Session, req RunRequest,
 		if h.cfg.ParallelTools && len(resp.ToolCalls) > 1 {
 			if plans, ok := h.planParallel(catalog, session.AgentID, resp.ToolCalls); ok {
 				messages, executions = h.executeParallel(ctx, session, handler, plans, messages, executions)
+				if err := h.checkpointStep(ctx, session, handler); err != nil {
+					return result, err
+				}
 				continue
 			}
 		}
@@ -521,6 +627,9 @@ func (h *Harness) runTurn(ctx context.Context, session *Session, req RunRequest,
 			}
 
 			callStart := h.cfg.Clock.Now()
+			if err := h.checkpointToolStart(ctx, session, handler, it, call); err != nil {
+				return result, err
+			}
 			res, callErr := h.callTool(ctx, it, call, h.effectiveToolTimeout(session.AgentID, it.tool), func(update ProgressUpdate) {
 				handler.Progress(ctx, ProgressEvent{
 					CallID:   call.ID,
@@ -550,6 +659,9 @@ func (h *Harness) runTurn(ctx context.Context, session *Session, req RunRequest,
 				Status:    status,
 				LatencyMS: callLatency.Milliseconds(),
 			})
+			if err := h.checkpointStep(ctx, session, handler); err != nil {
+				return result, err
+			}
 		}
 	}
 }
