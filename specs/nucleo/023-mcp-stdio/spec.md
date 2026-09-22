@@ -1,6 +1,6 @@
 # Feature Specification: MCP stdio (servidor MCP como processo local)
 
-**Feature Branch**: `nucleo/023-mcp-stdio` · **Status**: Draft (aguardando portão)
+**Feature Branch**: `nucleo/023-mcp-stdio` · **Status**: Aprovado (2026-09-22)
 
 **Input**: dependência declarada pelo host `harness-cli` (spec 002, FR-723/FR-727; ADR 0006 do
 `harness-cli`): "MCP stdio é implementado no `ia-harness` e disponibilizado por release".
@@ -111,24 +111,19 @@ Cenário: executável ausente
 - Instalar/baixar servidores (`npx`, `uvx`): o host passa o executável e os args.
 - Pool de processos ou um processo compartilhado entre vários `Client`s.
 
-## Decisões em aberto (portão)
+## Decisões (portão de 2026-09-22)
 
-Recomendação e alternativas. A escolha vira ADR na fase de plan.
+Registradas no ADR 0028.
 
-1. **Como montar o transporte (recomendado: A)**
-   - **A. `mcp.CommandTransport` do SDK com um `exec.Cmd` montado pelo harness** (sem contexto de
-     request, `SysProcAttr` com grupo de processos, env mínimo). Reusa encerramento e framing do
-     SDK; o harness controla só a criação do processo. Contra: o `Close` do SDK sinaliza só o PID
-     do filho, então o kill do grupo fica num complemento nosso.
-   - **B. Transporte próprio sobre `mcp.IOTransport`** com pipes e ciclo de vida nossos. Controle
-     total do encerramento. Contra: duplica o que o SDK já testa e aumenta a superfície de bug.
-   - **C. Deixar o host injetar `Deps.Transport`** (sem feature). Custo zero no harness. Contra:
-     cada host reimplementa a parte sensível de segurança; contraria ADR 0006 do `harness-cli`.
-2. **Ambiente do filho (recomendado: allowlist mínima, FR-STD-004)**. Alternativas: herdar tudo e
-   remover o que parece segredo (frágil, denylist) ou env totalmente vazio (quebra executáveis que
-   dependem de `PATH`/`HOME`).
-3. **Contrato de config em arquivo**: se `contracts/config` descrever servidores MCP, os campos
-   stdio entram no JSON Schema e no gerado (§2 da constitution). Confirmar no plan.
+1. **Transporte**: `mcp.CommandTransport` do SDK com o `exec.Cmd` montado pelo harness. Rejeitados:
+   transporte próprio sobre `mcp.IOTransport` (duplica o SDK) e deixar o host injetar
+   `Deps.Transport` (espalha a parte sensível por host; contraria o ADR 0006 do `harness-cli`).
+2. **Ambiente do filho**: allowlist mínima (FR-STD-004). Rejeitados: herdar e filtrar por denylist
+   (frágil) e ambiente vazio (quebra executáveis que dependem de `PATH`/`HOME`).
+3. **Contrato de config**: `contracts/config/harness_config.json` já descreve `mcp_servers`, então os
+   campos stdio entram no schema e no gerado (constitution §2).
+4. **Windows**: encerramento best-effort do filho, documentado; netos podem sobreviver. Unix encerra o
+   grupo inteiro.
 
 ## Dependências e espelho
 
