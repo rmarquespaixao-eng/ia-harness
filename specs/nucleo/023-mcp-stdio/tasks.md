@@ -33,25 +33,25 @@ fecha com `make verify` verde.
 
 ## Fase 3 — Transporte stdio no `mcpclient`
 
-- [ ] T2312 Servidor de teste por re-execução (`TestMain` + modos `echo`, `env`, `die-after-1`,
+- [x] T2312 Servidor de teste por re-execução (`TestMain` + modos `echo`, `env`, `die-after-1`,
   `spawn-child`, `stderr-flood`, `exit-now`) — `adapters/mcpclient/stdio_server_test.go` — NFR
-- [ ] T2313 Teste Red: `Config.validate` (`Endpoint`+`Command`, nome de env inválido) e
+- [x] T2313 Teste Red: `Config.validate` (`Endpoint`+`Command`, nome de env inválido) e
   `Config` sem `Command` inalterado — `adapters/mcpclient/stdio_test.go` — FR-STD-001/012
-- [ ] T2314 Teste Red: `List`/`Call` via processo publica tools com namespace — CU-STD-1 —
+- [x] T2314 Teste Red: `List`/`Call` via processo publica tools com namespace — CU-STD-1 —
   FR-STD-001/002/011
-- [ ] T2315 Teste Red: env do host não vaza; `Env` e `EnvCredentials` chegam; isca ausente de
+- [x] T2315 Teste Red: env do host não vaza; `Env` e `EnvCredentials` chegam; isca ausente de
   argv, log e erro — CU-STD-1 — FR-STD-004/005/013
-- [ ] T2316 `stdioTransport` + `groupConn` + validação + ramo em `transport()` —
+- [x] T2316 `stdioTransport` + `groupConn` + validação + ramo em `transport()` —
   `adapters/mcpclient/stdio.go`, `client.go` — FR-STD-001..006/010/013
-- [ ] T2317 Teste Red: cancelar o ctx de uma `Call` não mata o servidor; próxima `Call` usa o
+- [x] T2317 Teste Red: cancelar o ctx de uma `Call` não mata o servidor; próxima `Call` usa o
   mesmo PID — FR-STD-006
-- [ ] T2318 Teste Red: `die-after-1` reconecta uma vez; `exit-now` e executável ausente falham
+- [x] T2318 Teste Red: `die-after-1` reconecta uma vez; `exit-now` e executável ausente falham
   sem laço (contagem de inícios) — CU-STD-2 — FR-STD-008
-- [ ] T2319 `shouldReconnect`: falhas de início permanentes — `adapters/mcpclient/reconnect.go` —
+- [x] T2319 `shouldReconnect`: falhas de início permanentes — `adapters/mcpclient/reconnect.go` —
   FR-STD-008
-- [ ] T2320 Teste Red (unix): `Close` sem órfão (`spawn-child`) dentro de `TerminateTimeout` +
+- [x] T2320 Teste Red (unix): `Close` sem órfão (`spawn-child`) dentro de `TerminateTimeout` +
   margem — CU-STD-3 — FR-STD-007
-- [ ] T2321 Teste Red: `stderr-flood` limitado e só em `Debug` — FR-STD-009
+- [x] T2321 Teste Red: `stderr-flood` limitado e só em `Debug` — FR-STD-009
 
 ## Fase 4 — Fechamento
 

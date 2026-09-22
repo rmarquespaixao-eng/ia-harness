@@ -2,7 +2,6 @@ package mcpclient_test
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"testing"
@@ -29,11 +28,13 @@ func runTestServer(mode string) int {
 	server := mcp.NewServer(&mcp.Implementation{Name: "test-server", Version: "v0.0.1"}, nil)
 	registerTestTools(server, mode)
 	transport := &mcp.StdioTransport{}
-	_, err := server.Connect(context.Background(), transport, nil)
+	session, err := server.Connect(context.Background(), transport, nil)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "test-server: %v\n", err)
 		return 1
 	}
+	// Bloqueia até o cliente fechar a conexão (stdin EOF).
+	session.Wait()
 	return 0
 }
 
@@ -105,18 +106,4 @@ func registerTestTools(server *mcp.Server, mode string) {
 		// Sai antes do handshake.
 		os.Exit(1)
 	}
-}
-
-// jsonResult devolve o texto do primeiro conteúdo do resultado.
-func jsonResult(data []byte) string {
-	var r struct {
-		Content []struct {
-			Type string `json:"type"`
-			Text string `json:"text"`
-		} `json:"content"`
-	}
-	if err := json.Unmarshal(data, &r); err != nil || len(r.Content) == 0 {
-		return ""
-	}
-	return r.Content[0].Text
 }

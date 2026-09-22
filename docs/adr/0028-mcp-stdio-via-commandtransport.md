@@ -1,6 +1,6 @@
 # ADR 0028 — MCP stdio via CommandTransport do SDK
 
-**Status**: Proposed
+**Status**: Accepted
 **Data**: 2026-09-22
 **Feature**: `specs/nucleo/023-mcp-stdio`
 

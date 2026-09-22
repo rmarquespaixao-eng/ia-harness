@@ -4,6 +4,12 @@ Todas as mudanças relevantes deste projeto são documentadas neste arquivo.
 O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o
 versionamento segue [SemVer](https://semver.org/lang/pt-BR/).
 
+## [0.4.0] - 2026-09-22
+
+### Added
+
+- **MCP stdio — servidor MCP como processo local (feature 023).** `mcpclient` agora aceita `Config.Command`/`Args` para servidores MCP stdio (mutuamente exclusivo com `Endpoint`). O harness monta o `exec.Cmd` sem shell, com ambiente mínimo por allowlist (`PATH`/`HOME`/`LANG`/`TMPDIR` + Windows), credenciais resolvidas só no env do filho (`EnvCredentials`), stderr truncado e redigido, grupo de processos (Unix) e encerramento sem órfãos. `internal/platform/proc` com `Resolve`, `MinimalEnv`, `StderrSink`, `Group`/`KillGroup`. Schema `harness_config.json` com `oneOf` endpoint|command. ADR 0028.
+
 ## [0.3.0] - 2026-09-17
 
 ### Added
