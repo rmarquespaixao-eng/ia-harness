@@ -19,10 +19,11 @@ const defaultTerminateTimeout = 5 * time.Second
 // envNameRE valida nomes de variáveis de ambiente (FR-STD-005).
 var envNameRE = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 
-// validateStdio valida os campos stdio do Config.
-func (c *Config) validateStdio() error {
-	return c.Validate()
-}
+// ErrCredential indica que uma credencial declarada em EnvCredentials não pôde
+// ser resolvida (referência inválida ou Deps.Credentials ausente). O processo
+// filho MUST NOT iniciar nesse caso (CU-STD-1 fluxo 3a, FR-STD-005); o erro
+// nunca contém o valor da credencial.
+var ErrCredential = errors.New("mcpclient: falha ao resolver credencial")
 
 // Validate verifica a consistência do Config (Endpoint × Command, nomes de env).
 func (c *Config) Validate() error {
@@ -53,8 +54,10 @@ type stdioTransport struct {
 	deps Deps
 }
 
-// Connect monta o exec.Cmd, resolve o executável, monta o ambiente mínimo,
-// resolve credenciais e delega ao mcp.CommandTransport do SDK.
+// Connect monta o exec.Cmd, resolve o executável, resolve as credenciais uma
+// única vez com o ctx recebido e delega ao mcp.CommandTransport do SDK. Se
+// alguma credencial declarada em EnvCredentials não puder ser resolvida, o
+// processo filho MUST NOT iniciar (CU-STD-1 fluxo 3a, FR-STD-005).
 func (t *stdioTransport) Connect(ctx context.Context) (mcp.Connection, error) {
 	resolved, err := proc.Resolve(t.cfg.Command)
 	if err != nil {
@@ -62,13 +65,18 @@ func (t *stdioTransport) Connect(ctx context.Context) (mcp.Connection, error) {
 			t.cfg.Name, filepath.Base(t.cfg.Command), err)
 	}
 
+	env, secrets, err := t.resolveEnv(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	cmd := exec.Command(resolved, t.cfg.Args...)
 	if t.cfg.Dir != "" {
 		cmd.Dir = t.cfg.Dir
 	}
-	cmd.Env = proc.MinimalEnv(t.buildEnv(ctx))
+	cmd.Env = proc.MinimalEnv(env)
 	cmd.SysProcAttr = proc.Group()
-	cmd.Stderr = proc.NewStderrSink(t.deps.Logger, t.secretValues())
+	cmd.Stderr = proc.NewStderrSink(t.deps.Logger, secrets)
 
 	terminateTimeout := t.cfg.TerminateTimeout
 	if terminateTimeout == 0 {
@@ -87,39 +95,32 @@ func (t *stdioTransport) Connect(ctx context.Context) (mcp.Connection, error) {
 	return &groupConn{Connection: conn, pid: cmd.Process.Pid}, nil
 }
 
-// buildEnv combina Env + EnvCredentials resolvidas.
-func (t *stdioTransport) buildEnv(ctx context.Context) map[string]string {
-	env := make(map[string]string, len(t.cfg.Env)+len(t.cfg.EnvCredentials))
+// resolveEnv combina Env + EnvCredentials resolvidas uma única vez com ctx e
+// devolve também os valores secretos para redação do stderr (mesmos valores
+// usados no ambiente do filho). Credencial não resolvida — referência inválida
+// ou Deps.Credentials nil com EnvCredentials declarado — devolve um erro
+// nomeado citando a variável e o servidor, nunca o valor (FR-STD-005).
+func (t *stdioTransport) resolveEnv(ctx context.Context) (env map[string]string, secrets []string, err error) {
+	env = make(map[string]string, len(t.cfg.Env)+len(t.cfg.EnvCredentials))
 	for k, v := range t.cfg.Env {
 		env[k] = v
 	}
 	for name, ref := range t.cfg.EnvCredentials {
 		if t.deps.Credentials == nil {
-			continue
+			return nil, nil, fmt.Errorf("mcpclient: servidor %q: credencial de %q não resolvida: nenhum CredentialProvider injetado: %w",
+				t.cfg.Name, name, ErrCredential)
 		}
-		val, err := t.deps.Credentials.Resolve(ctx, ref)
-		if err != nil {
-			continue
+		val, resolveErr := t.deps.Credentials.Resolve(ctx, ref)
+		if resolveErr != nil {
+			return nil, nil, fmt.Errorf("mcpclient: servidor %q: credencial de %q não resolvida: %w",
+				t.cfg.Name, name, ErrCredential)
 		}
 		env[name] = val
-	}
-	return env
-}
-
-// secretValues devolve os valores resolvidos de credenciais para redação do stderr.
-func (t *stdioTransport) secretValues() []string {
-	if t.deps.Credentials == nil || len(t.cfg.EnvCredentials) == 0 {
-		return nil
-	}
-	var secrets []string
-	for _, ref := range t.cfg.EnvCredentials {
-		val, err := t.deps.Credentials.Resolve(context.Background(), ref)
-		if err != nil || val == "" {
-			continue
+		if val != "" {
+			secrets = append(secrets, val)
 		}
-		secrets = append(secrets, val)
 	}
-	return secrets
+	return env, secrets, nil
 }
 
 // groupConn envolve o Connection do SDK e mata o grupo de processos no Close.
@@ -138,5 +139,6 @@ func (c *groupConn) Close() error {
 // isPermanentStdioError classifica erros de início como permanentes.
 func isPermanentStdioError(err error) bool {
 	return errors.Is(err, proc.ErrNotFound) ||
-		errors.Is(err, proc.ErrRelativePath)
+		errors.Is(err, proc.ErrRelativePath) ||
+		errors.Is(err, ErrCredential)
 }

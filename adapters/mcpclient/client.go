@@ -147,7 +147,7 @@ func (c *Client) transport() (mcp.Transport, error) {
 	if c.deps.Transport != nil {
 		return c.deps.Transport, nil
 	}
-	if err := c.cfg.validateStdio(); err != nil {
+	if err := c.cfg.Validate(); err != nil {
 		return nil, err
 	}
 	if c.cfg.Command != "" {
