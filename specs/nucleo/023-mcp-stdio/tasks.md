@@ -58,7 +58,7 @@ fecha com `make verify` verde.
 - [x] T2322 `docs/features/mcp-stdio.md` (uso, allowlist, credenciais, limitação Windows) e
   exemplo em `examples/` se aplicável
 - [x] T2323 ADR 0028 → `Accepted`; CHANGELOG `[0.4.0]`; `make verify` + `go test -race ./...` verdes
-- [ ] T2324 Release `v0.4.0` (tag) conforme runbook de publicação existente — destrava
+- [x] T2324 Release `v0.4.0` (tag) conforme runbook de publicação existente — destrava
   `harness-cli` T2050–T2053
 
 ## Dependências
