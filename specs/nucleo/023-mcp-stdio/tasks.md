@@ -55,9 +55,9 @@ fecha com `make verify` verde.
 
 ## Fase 4 — Fechamento
 
-- [ ] T2322 `docs/features/mcp-stdio.md` (uso, allowlist, credenciais, limitação Windows) e
+- [x] T2322 `docs/features/mcp-stdio.md` (uso, allowlist, credenciais, limitação Windows) e
   exemplo em `examples/` se aplicável
-- [ ] T2323 ADR 0028 → `Accepted`; CHANGELOG `[0.4.0]`; `make verify` + `go test -race ./...` verdes
+- [x] T2323 ADR 0028 → `Accepted`; CHANGELOG `[0.4.0]`; `make verify` + `go test -race ./...` verdes
 - [ ] T2324 Release `v0.4.0` (tag) conforme runbook de publicação existente — destrava
   `harness-cli` T2050–T2053
 
