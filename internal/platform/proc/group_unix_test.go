@@ -3,6 +3,7 @@
 package proc_test
 
 import (
+	"bufio"
 	"errors"
 	"os/exec"
 	"strconv"
@@ -45,45 +46,24 @@ func processoMorto(pid int) bool {
 	return errors.Is(err, syscall.ESRCH)
 }
 
-// netoDoPID busca, via pgrep, o PID de um filho direto de pid.
-func netoDoPID(pid int) (int, bool) {
-	out, err := exec.Command("pgrep", "-P", strconv.Itoa(pid)).Output()
-	if err != nil {
-		return 0, false
-	}
-	campos := strings.Fields(string(out))
-	if len(campos) == 0 {
-		return 0, false
-	}
-	netoPid, err := strconv.Atoi(campos[0])
-	if err != nil {
-		return 0, false
-	}
-	return netoPid, true
-}
-
 func TestGroupAndKillGroup(t *testing.T) {
 	t.Run("kills_child_and_grandchild", func(t *testing.T) {
-		// Arrange — filho que cria um neto (sleep) e espera.
-		child := exec.Command("sh", "-c", "sleep 60 & sleep 60")
+		// Arrange — filho que cria um neto (sleep), informa o PID dele e espera.
+		child := exec.Command("sh", "-c", "sleep 60 & echo $!; wait")
 		child.SysProcAttr = proc.Group()
+		stdout, err := child.StdoutPipe()
+		require.NoError(t, err)
 		require.NoError(t, child.Start())
 		pid := child.Process.Pid
 
-		// Aguarda o filho criar o neto (poll até pgrep encontrar um filho de pid).
-		var netoPid int
-		esperaAte(t, 5*time.Second, func() bool {
-			p, ok := netoDoPID(pid)
-			if !ok {
-				return false
-			}
-			netoPid = p
-			return true
-		}, "neto não apareceu a tempo (pid=%d)", pid)
+		linha, err := bufio.NewReader(stdout).ReadString('\n')
+		require.NoError(t, err, "filho não informou o PID do neto")
+		netoPid, err := strconv.Atoi(strings.TrimSpace(linha))
+		require.NoError(t, err)
 		require.True(t, processoVivo(netoPid), "neto deveria estar vivo antes do KillGroup")
 
 		// Act
-		err := proc.KillGroup(pid)
+		err = proc.KillGroup(pid)
 
 		// Assert — ESRCH é ignorado; o grupo deve estar morto.
 		require.NoError(t, err)
