@@ -11,25 +11,25 @@ fecha com `make verify` verde.
   `contracts/conformance_test.go` — FR-STD-001/012
 - [x] T2302 `contracts/config/harness_config.json`: campos stdio + `oneOf`; `go generate ./...`
   (fallback do plan se o gerador não suportar `oneOf`) — FR-STD-001/012
-- [ ] T2303 Teste Red + impl: `adapters/config.MCPServer`/`MCPServers()` com os campos stdio —
+- [x] T2303 Teste Red + impl: `adapters/config.MCPServer`/`MCPServers()` com os campos stdio —
   `adapters/config/file_test.go`, `file.go` — FR-STD-001
 
 ## Fase 2 — `internal/platform/proc` (regra pura e SO)
 
-- [ ] T2304 [P] Teste Red: `Resolve` (absoluto ok, nome por PATH, relativo com separador recusado,
+- [x] T2304 [P] Teste Red: `Resolve` (absoluto ok, nome por PATH, relativo com separador recusado,
   inexistente → `ErrNotFound`, nome com espaço recusado) — `internal/platform/proc/resolve_test.go` —
   FR-STD-002/003
-- [ ] T2305 `proc.Resolve` — `internal/platform/proc/resolve.go` — FR-STD-003
-- [ ] T2306 [P] Teste Red: `MinimalEnv` (só a allowlist do host, `extra` sobrepõe, ordem
+- [x] T2305 `proc.Resolve` — `internal/platform/proc/resolve.go` — FR-STD-003
+- [x] T2306 [P] Teste Red: `MinimalEnv` (só a allowlist do host, `extra` sobrepõe, ordem
   determinística, variável do host fora da lista ausente) — `internal/platform/proc/env_test.go` —
   FR-STD-004
-- [ ] T2307 `proc.MinimalEnv` — `internal/platform/proc/env.go` — FR-STD-004
-- [ ] T2308 [P] Teste Red: `StderrSink` (quebra por linha, trunca por linha e total, redige os
+- [x] T2307 `proc.MinimalEnv` — `internal/platform/proc/env.go` — FR-STD-004
+- [x] T2308 [P] Teste Red: `StderrSink` (quebra por linha, trunca por linha e total, redige os
   valores-isca, emite `Debug`) — `internal/platform/proc/stderr_test.go` — FR-STD-009
-- [ ] T2309 `proc.StderrSink` — `internal/platform/proc/stderr.go` — FR-STD-009
-- [ ] T2310 Teste Red (unix): `Group`+`KillGroup` matam filho e neto; `ESRCH` ignorado —
+- [x] T2309 `proc.StderrSink` — `internal/platform/proc/stderr.go` — FR-STD-009
+- [x] T2310 Teste Red (unix): `Group`+`KillGroup` matam filho e neto; `ESRCH` ignorado —
   `internal/platform/proc/group_unix_test.go` — FR-STD-007
-- [ ] T2311 `proc.Group`/`KillGroup` (`group_unix.go`, `group_other.go` best-effort) — FR-STD-007
+- [x] T2311 `proc.Group`/`KillGroup` (`group_unix.go`, `group_other.go` best-effort) — FR-STD-007
 
 ## Fase 3 — Transporte stdio no `mcpclient`
 

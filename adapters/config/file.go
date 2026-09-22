@@ -23,16 +23,16 @@ const schemaPath = "config/harness_config.json"
 // MCPServer descreve um servidor MCP declarado no arquivo (o host monta o
 // mcpclient com a credencial resolvida por env:/file:).
 type MCPServer struct {
-	Name               string
-	Endpoint           string
-	CredentialRef      string
-	ToolTimeout        time.Duration
-	Command            string
-	Args               []string
-	Env                map[string]string
-	EnvCredentials     map[string]string
-	Dir                string
-	TerminateTimeout   time.Duration
+	Name             string
+	Endpoint         string
+	CredentialRef    string
+	ToolTimeout      time.Duration
+	Command          string
+	Args             []string
+	Env              map[string]string
+	EnvCredentials   map[string]string
+	Dir              string
+	TerminateTimeout time.Duration
 }
 
 // File é um arquivo de configuração já validado contra o schema.

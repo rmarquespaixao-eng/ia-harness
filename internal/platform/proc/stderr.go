@@ -18,11 +18,11 @@ const (
 // StderrSink é um io.Writer que quebra o stderr por linha, trunca (por linha
 // e por total), redige credenciais e emite logger.Debug (FR-STD-009).
 type StderrSink struct {
-	mu       sync.Mutex
-	logger   *slog.Logger
-	secrets  []string
-	buf      bytes.Buffer
-	total    int
+	mu        sync.Mutex
+	logger    *slog.Logger
+	secrets   []string
+	buf       bytes.Buffer
+	total     int
 	truncated bool
 }
 
