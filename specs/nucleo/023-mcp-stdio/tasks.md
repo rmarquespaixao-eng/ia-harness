@@ -6,10 +6,10 @@ fecha com `make verify` verde.
 
 ## Fase 1 — Contrato de config
 
-- [ ] T2301 Teste Red: conformidade de `mcp_server` stdio (aceita `command`+`args`, recusa
+- [x] T2301 Teste Red: conformidade de `mcp_server` stdio (aceita `command`+`args`, recusa
   `endpoint`+`command`, recusa nenhum dos dois, arquivo HTTP atual continua válido) —
   `contracts/conformance_test.go` — FR-STD-001/012
-- [ ] T2302 `contracts/config/harness_config.json`: campos stdio + `oneOf`; `go generate ./...`
+- [x] T2302 `contracts/config/harness_config.json`: campos stdio + `oneOf`; `go generate ./...`
   (fallback do plan se o gerador não suportar `oneOf`) — FR-STD-001/012
 - [ ] T2303 Teste Red + impl: `adapters/config.MCPServer`/`MCPServers()` com os campos stdio —
   `adapters/config/file_test.go`, `file.go` — FR-STD-001

@@ -95,3 +95,34 @@ func TestParseRejeitaSchemaInvalido(t *testing.T) {
 	_, err = config.Parse([]byte(`nao é json`))
 	require.Error(t, err)
 }
+
+const stdioJSON = `{
+  "models": {},
+  "policy": {"default": "deny"},
+  "mcp_servers": [{
+    "name": "local",
+    "command": "/usr/bin/server",
+    "args": ["--stdio"],
+    "env": {"FOO": "bar"},
+    "env_credentials": {"TOKEN": "vault:x"},
+    "dir": "/tmp",
+    "terminate_timeout_seconds": 10
+  }]
+}`
+
+func TestParseMCPServerStdio(t *testing.T) {
+	file, err := config.Parse([]byte(stdioJSON))
+	require.NoError(t, err)
+
+	servers := file.MCPServers()
+	require.Len(t, servers, 1)
+	s := servers[0]
+	assert.Equal(t, "local", s.Name)
+	assert.Equal(t, "/usr/bin/server", s.Command)
+	assert.Equal(t, []string{"--stdio"}, s.Args)
+	assert.Equal(t, map[string]string{"FOO": "bar"}, s.Env)
+	assert.Equal(t, map[string]string{"TOKEN": "vault:x"}, s.EnvCredentials)
+	assert.Equal(t, "/tmp", s.Dir)
+	assert.Equal(t, 10*time.Second, s.TerminateTimeout)
+	assert.Empty(t, s.Endpoint)
+}
