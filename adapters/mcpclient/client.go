@@ -29,7 +29,7 @@ type Config struct {
 	// Name é o namespace das tools publicadas (o host monta "namespace.name").
 	Name string
 	// Endpoint é a URL do endpoint Streamable HTTP; ignorado quando
-	// Deps.Transport é injetado.
+	// Deps.Transport é injetado ou Command está definido.
 	Endpoint string
 	// CredentialRef é a referência resolvida por Deps.Credentials a cada
 	// request; vazia significa servidor sem autenticação (FR-004).
@@ -38,6 +38,18 @@ type Config struct {
 	ToolTimeout time.Duration
 	// Headers são headers fixos acrescentados a cada request do transporte.
 	Headers map[string]string
+	// Command é o executável do servidor stdio; mutuamente exclusivo com Endpoint.
+	Command string
+	// Args são os argumentos do executável (argv explícito, sem shell).
+	Args []string
+	// Env são variáveis de ambiente adicionais do processo filho.
+	Env map[string]string
+	// EnvCredentials mapeia variável → CredentialRef; resolvidas a cada início.
+	EnvCredentials map[string]string
+	// Dir é o diretório de trabalho do filho; vazio usa o do host.
+	Dir string
+	// TerminateTimeout é o tempo máximo para encerrar o processo; 0 = 5s.
+	TerminateTimeout time.Duration
 }
 
 // Deps reúne as dependências injetadas pelo host (D-12).
@@ -130,14 +142,16 @@ func (c *Client) connectLocked(ctx context.Context) (*mcp.ClientSession, error) 
 	return cs, nil
 }
 
-// transport devolve o transporte injetado ou monta o Streamable HTTP com o
-// RoundTripper que injeta credencial e headers fixos.
+// transport devolve o transporte injetado, monta o Streamable HTTP ou o stdio.
 func (c *Client) transport() (mcp.Transport, error) {
 	if c.deps.Transport != nil {
 		return c.deps.Transport, nil
 	}
-	if c.cfg.Endpoint == "" {
-		return nil, fmt.Errorf("mcpclient: servidor %q sem Endpoint e sem Transport injetado", c.cfg.Name)
+	if err := c.cfg.validateStdio(); err != nil {
+		return nil, err
+	}
+	if c.cfg.Command != "" {
+		return &stdioTransport{cfg: c.cfg, deps: c.deps}, nil
 	}
 	return &mcp.StreamableClientTransport{
 		Endpoint:   c.cfg.Endpoint,

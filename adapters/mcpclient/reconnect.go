@@ -65,13 +65,17 @@ func (c *Client) invalidateSession() {
 	}
 }
 
-// shouldReconnect classifica a falha: erro de protocolo JSON-RPC e
-// cancelamento de contexto são definitivos; o restante é sessão/transporte.
+// shouldReconnect classifica a falha: erro de protocolo JSON-RPC,
+// cancelamento de contexto e falhas de início stdio são definitivos;
+// o restante é sessão/transporte.
 func shouldReconnect(err error) bool {
 	if err == nil {
 		return false
 	}
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return false
+	}
+	if isPermanentStdioError(err) {
 		return false
 	}
 	if errors.Is(err, mcp.ErrConnectionClosed) {
