@@ -8,7 +8,7 @@ versionamento segue [SemVer](https://semver.org/lang/pt-BR/).
 
 ### Added
 
-- **MCP stdio — servidor MCP como processo local (feature 023).** `mcpclient` agora aceita `Config.Command`/`Args` para servidores MCP stdio (mutuamente exclusivo com `Endpoint`). O harness monta o `exec.Cmd` sem shell, com ambiente mínimo por allowlist (`PATH`/`HOME`/`LANG`/`TMPDIR` + Windows), credenciais resolvidas só no env do filho (`EnvCredentials`), stderr truncado e redigido, grupo de processos (Unix) e encerramento sem órfãos. `internal/platform/proc` com `Resolve`, `MinimalEnv`, `StderrSink`, `Group`/`KillGroup`. Schema `harness_config.json` com `oneOf` endpoint|command. ADR 0028.
+- **MCP stdio — servidor MCP como processo local (feature 023).** `mcpclient` agora aceita `Config.Command`/`Args` para servidores MCP stdio (mutuamente exclusivo com `Endpoint`). O harness monta o `exec.Cmd` sem shell, com ambiente mínimo por allowlist (`PATH`/`HOME`/`LANG`/`TMPDIR` + Windows), credenciais resolvidas uma vez por início, só no env do filho (`EnvCredentials`; credencial não resolvida devolve `ErrCredential` e o processo não inicia), stderr truncado e redigido, grupo de processos (Unix) e encerramento sem órfãos. `internal/platform/proc` com `Resolve`, `MinimalEnv`, `StderrSink`, `Group`/`KillGroup`. Schema `harness_config.json` com `oneOf` endpoint|command. ADR 0028.
 
 ## [0.3.0] - 2026-09-17
 
