@@ -3,8 +3,10 @@
 package proc_test
 
 import (
-	"os"
+	"errors"
 	"os/exec"
+	"strconv"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -15,6 +17,51 @@ import (
 	"github.com/rmarquespaixao-eng/ia-harness/internal/platform/proc"
 )
 
+// esperaAte faz poll em cond a cada 10ms até que retorne true ou o prazo
+// expire; no expirar do prazo, falha o teste com msgEFormatar.
+func esperaAte(t *testing.T, prazo time.Duration, cond func() bool, msgEFormatar string, args ...interface{}) {
+	t.Helper()
+
+	deadline := time.Now().Add(prazo)
+	for {
+		if cond() {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf(msgEFormatar, args...)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+// processoVivo verifica se o PID ainda existe via signal 0.
+func processoVivo(pid int) bool {
+	return syscall.Kill(pid, 0) == nil
+}
+
+// processoMorto verifica se o PID não existe mais (ESRCH).
+func processoMorto(pid int) bool {
+	err := syscall.Kill(pid, 0)
+	return errors.Is(err, syscall.ESRCH)
+}
+
+// netoDoPID busca, via pgrep, o PID de um filho direto de pid.
+func netoDoPID(pid int) (int, bool) {
+	out, err := exec.Command("pgrep", "-P", strconv.Itoa(pid)).Output()
+	if err != nil {
+		return 0, false
+	}
+	campos := strings.Fields(string(out))
+	if len(campos) == 0 {
+		return 0, false
+	}
+	netoPid, err := strconv.Atoi(campos[0])
+	if err != nil {
+		return 0, false
+	}
+	return netoPid, true
+}
+
 func TestGroupAndKillGroup(t *testing.T) {
 	t.Run("kills_child_and_grandchild", func(t *testing.T) {
 		// Arrange — filho que cria um neto (sleep) e espera.
@@ -23,8 +70,17 @@ func TestGroupAndKillGroup(t *testing.T) {
 		require.NoError(t, child.Start())
 		pid := child.Process.Pid
 
-		// Aguarda o filho criar o neto.
-		time.Sleep(200 * time.Millisecond)
+		// Aguarda o filho criar o neto (poll até pgrep encontrar um filho de pid).
+		var netoPid int
+		esperaAte(t, 5*time.Second, func() bool {
+			p, ok := netoDoPID(pid)
+			if !ok {
+				return false
+			}
+			netoPid = p
+			return true
+		}, "neto não apareceu a tempo (pid=%d)", pid)
+		require.True(t, processoVivo(netoPid), "neto deveria estar vivo antes do KillGroup")
 
 		// Act
 		err := proc.KillGroup(pid)
@@ -32,13 +88,19 @@ func TestGroupAndKillGroup(t *testing.T) {
 		// Assert — ESRCH é ignorado; o grupo deve estar morto.
 		require.NoError(t, err)
 
-		// Espera o filho sair.
+		// Colhe o filho (senão fica zumbi e Kill(pid,0) continua "vivo").
 		_ = child.Wait()
 
-		// Verifica que o neto (sleep 60 em background) não está vivo.
-		time.Sleep(100 * time.Millisecond)
-		// O neto estava no mesmo grupo; KillGroup deve tê-lo matado.
-		// Verificamos que não há processos órfãos do grupo.
+		// Verifica que o filho morreu.
+		esperaAte(t, 5*time.Second, func() bool {
+			return processoMorto(pid)
+		}, "processo filho não morreu a tempo (pid=%d)", pid)
+
+		// Verifica que o neto (sleep 60 em background) também morreu.
+		// O neto é órfão adotado e colhido pelo init; o poll aguarda essa colheita.
+		esperaAte(t, 5*time.Second, func() bool {
+			return processoMorto(netoPid)
+		}, "processo neto não morreu a tempo (pid=%d)", netoPid)
 	})
 
 	t.Run("esrch_ignored", func(t *testing.T) {
@@ -68,9 +130,7 @@ func TestGroupProcessDiesCleanly(t *testing.T) {
 	assert.NoError(t, err, "ESRCH após saída limpa deve ser ignorado")
 
 	// Verifica que o PID não existe mais.
-	p, err := os.FindProcess(pid)
-	if err == nil {
-		// FindProcess pode encontrar o zumbi antes do Wait; signal 0 verifica.
-		_ = p.Signal(syscall.Signal(0))
-	}
+	esperaAte(t, 5*time.Second, func() bool {
+		return processoMorto(pid)
+	}, "processo filho não deveria mais existir (pid=%d)", pid)
 }
