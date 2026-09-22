@@ -2,6 +2,7 @@ package contracts
 
 import (
 	"encoding/json"
+	"fmt"
 	"os/exec"
 	"strings"
 	"testing"
@@ -308,6 +309,55 @@ func TestHarnessConfigConformance(t *testing.T) {
 	for _, field := range []string{"pricing", "context", "redaction", "mcp_servers"} {
 		assert.Contains(t, config, field, "campo opcional preenchido ausente: %s", field)
 	}
+}
+
+// TestMcpServerStdioConformance prova que o schema de config aceita servidor
+// stdio (command+args), rejeita endpoint+command juntos, rejeita nenhum dos
+// dois, e preserva a validade do servidor HTTP existente (FR-STD-001/012).
+func TestMcpServerStdioConformance(t *testing.T) {
+	const base = `{
+  "models": {"m": {"provider": "p", "model": "m"}},
+  "policy": {"default": "deny"},
+  "mcp_servers": [%s]
+}`
+
+	t.Run("stdio_command_args", func(t *testing.T) {
+		doc := fmt.Sprintf(base, `{"name":"local","command":"/usr/bin/server","args":["--stdio"],"env":{"FOO":"bar"},"env_credentials":{"TOKEN":"vault:x"},"dir":"/tmp","terminate_timeout_seconds":10}`)
+		assertValidMCPServer(t, doc)
+	})
+
+	t.Run("http_still_valid", func(t *testing.T) {
+		doc := fmt.Sprintf(base, `{"name":"remote","endpoint":"https://x/mcp"}`)
+		assertValidMCPServer(t, doc)
+	})
+
+	t.Run("endpoint_and_command_rejected", func(t *testing.T) {
+		doc := fmt.Sprintf(base, `{"name":"both","endpoint":"https://x/mcp","command":"server"}`)
+		assertInvalidMCPServer(t, doc)
+	})
+
+	t.Run("neither_endpoint_nor_command_rejected", func(t *testing.T) {
+		doc := fmt.Sprintf(base, `{"name":"empty"}`)
+		assertInvalidMCPServer(t, doc)
+	})
+}
+
+func assertValidMCPServer(t *testing.T, jsonDoc string) {
+	t.Helper()
+	raw, err := Schema("config/harness_config.json")
+	require.NoError(t, err)
+	validator, err := schema.Compile(raw)
+	require.NoError(t, err)
+	require.NoError(t, validator.Validate(json.RawMessage(jsonDoc)), "deve validar: %s", jsonDoc)
+}
+
+func assertInvalidMCPServer(t *testing.T, jsonDoc string) {
+	t.Helper()
+	raw, err := Schema("config/harness_config.json")
+	require.NoError(t, err)
+	validator, err := schema.Compile(raw)
+	require.NoError(t, err)
+	require.Error(t, validator.Validate(json.RawMessage(jsonDoc)), "deve rejeitar: %s", jsonDoc)
 }
 
 // forbiddenStorageTerms são os indícios de biblioteca/engine de armazenamento

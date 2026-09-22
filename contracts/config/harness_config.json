@@ -118,12 +118,22 @@
     "mcp_server": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "endpoint"],
+      "required": ["name"],
+      "oneOf": [
+        { "required": ["endpoint"] },
+        { "required": ["command"] }
+      ],
       "properties": {
         "name": { "type": "string", "minLength": 1 },
         "endpoint": { "type": "string", "format": "uri" },
         "credential_ref": { "type": "string" },
-        "tool_timeout_seconds": { "type": "integer", "minimum": 0 }
+        "tool_timeout_seconds": { "type": "integer", "minimum": 0 },
+        "command": { "type": "string", "minLength": 1 },
+        "args": { "type": "array", "items": { "type": "string" } },
+        "env": { "type": "object", "additionalProperties": { "type": "string" } },
+        "env_credentials": { "type": "object", "additionalProperties": { "type": "string" } },
+        "dir": { "type": "string" },
+        "terminate_timeout_seconds": { "type": "integer", "minimum": 0 }
       }
     }
   }

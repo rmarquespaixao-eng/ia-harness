@@ -23,10 +23,16 @@ const schemaPath = "config/harness_config.json"
 // MCPServer descreve um servidor MCP declarado no arquivo (o host monta o
 // mcpclient com a credencial resolvida por env:/file:).
 type MCPServer struct {
-	Name          string
-	Endpoint      string
-	CredentialRef string
-	ToolTimeout   time.Duration
+	Name             string
+	Endpoint         string
+	CredentialRef    string
+	ToolTimeout      time.Duration
+	Command          string
+	Args             []string
+	Env              map[string]string
+	EnvCredentials   map[string]string
+	Dir              string
+	TerminateTimeout time.Duration
 }
 
 // File é um arquivo de configuração já validado contra o schema.
@@ -134,10 +140,16 @@ func (f *File) MCPServers() []MCPServer {
 	out := make([]MCPServer, 0, len(f.doc.McpServers))
 	for _, s := range f.doc.McpServers {
 		out = append(out, MCPServer{
-			Name:          s.Name,
-			Endpoint:      s.Endpoint,
-			CredentialRef: stringValue(s.CredentialRef),
-			ToolTimeout:   time.Duration(intValue(s.ToolTimeoutSeconds, 0)) * time.Second,
+			Name:             s.Name,
+			Endpoint:         stringValue(s.Endpoint),
+			CredentialRef:    stringValue(s.CredentialRef),
+			ToolTimeout:      time.Duration(intValue(s.ToolTimeoutSeconds, 0)) * time.Second,
+			Command:          stringValue(s.Command),
+			Args:             s.Args,
+			Env:              mapString(s.Env),
+			EnvCredentials:   mapString(s.EnvCredentials),
+			Dir:              stringValue(s.Dir),
+			TerminateTimeout: time.Duration(intValue(s.TerminateTimeoutSeconds, 0)) * time.Second,
 		})
 	}
 	return out
@@ -233,4 +245,15 @@ func stringValue[T ~string](p *T) string {
 		return ""
 	}
 	return string(*p)
+}
+
+func mapString[M ~map[string]string](m M) map[string]string {
+	if len(m) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(m))
+	for k, v := range m {
+		out[k] = v
+	}
+	return out
 }
