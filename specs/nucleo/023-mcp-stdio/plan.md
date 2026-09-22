@@ -1,6 +1,6 @@
 # Plan: MCP stdio — servidor MCP como processo local (023)
 
-**Feature**: `specs/nucleo/023-mcp-stdio/` · **Status**: Draft (aguardando portão)
+**Feature**: `specs/nucleo/023-mcp-stdio/` · **Status**: Aprovado (2026-09-22)
 
 Constitution: **não viola** nenhuma seção.
 - §2: nenhuma dependência nova, porque `mcp.CommandTransport` já está no SDK em uso. O contrato de
