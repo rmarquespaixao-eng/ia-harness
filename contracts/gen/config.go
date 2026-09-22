@@ -214,27 +214,47 @@ func (j *HarnessConfigFile) UnmarshalJSON(value []byte) error {
 }
 
 type McpServer struct {
+	// Args corresponds to the JSON schema field "args".
+	Args []string `json:"args,omitempty,omitzero"`
+
+	// Command corresponds to the JSON schema field "command".
+	Command *string `json:"command,omitempty,omitzero"`
+
 	// CredentialRef corresponds to the JSON schema field "credential_ref".
 	CredentialRef *string `json:"credential_ref,omitempty,omitzero"`
 
+	// Dir corresponds to the JSON schema field "dir".
+	Dir *string `json:"dir,omitempty,omitzero"`
+
 	// Endpoint corresponds to the JSON schema field "endpoint".
-	Endpoint string `json:"endpoint"`
+	Endpoint *string `json:"endpoint,omitempty,omitzero"`
+
+	// Env corresponds to the JSON schema field "env".
+	Env McpServerEnv `json:"env,omitempty,omitzero"`
+
+	// EnvCredentials corresponds to the JSON schema field "env_credentials".
+	EnvCredentials McpServerEnvCredentials `json:"env_credentials,omitempty,omitzero"`
 
 	// Name corresponds to the JSON schema field "name".
 	Name string `json:"name"`
 
+	// TerminateTimeoutSeconds corresponds to the JSON schema field
+	// "terminate_timeout_seconds".
+	TerminateTimeoutSeconds *int `json:"terminate_timeout_seconds,omitempty,omitzero"`
+
 	// ToolTimeoutSeconds corresponds to the JSON schema field "tool_timeout_seconds".
 	ToolTimeoutSeconds *int `json:"tool_timeout_seconds,omitempty,omitzero"`
 }
+
+type McpServerEnv map[string]string
+
+type McpServerEnvCredentials map[string]string
 
 // UnmarshalJSON implements json.Unmarshaler.
 func (j *McpServer) UnmarshalJSON(value []byte) error {
 	var raw map[string]interface{}
 	if err := json.Unmarshal(value, &raw); err != nil {
 		return err
-	}
-	if _, ok := raw["endpoint"]; raw != nil && !ok {
-		return fmt.Errorf("field endpoint in McpServer: required")
 	}
 	if _, ok := raw["name"]; raw != nil && !ok {
 		return fmt.Errorf("field name in McpServer: required")
@@ -244,8 +264,14 @@ func (j *McpServer) UnmarshalJSON(value []byte) error {
 	if err := json.Unmarshal(value, &plain); err != nil {
 		return err
 	}
+	if plain.Command != nil && utf8.RuneCountInString(string(*plain.Command)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "command", 1)
+	}
 	if utf8.RuneCountInString(string(plain.Name)) < 1 {
 		return fmt.Errorf("field %s length: must be >= %d", "name", 1)
+	}
+	if plain.TerminateTimeoutSeconds != nil && 0 > *plain.TerminateTimeoutSeconds {
+		return fmt.Errorf("field %s: must be >= %v", "terminate_timeout_seconds", 0)
 	}
 	if plain.ToolTimeoutSeconds != nil && 0 > *plain.ToolTimeoutSeconds {
 		return fmt.Errorf("field %s: must be >= %v", "tool_timeout_seconds", 0)
